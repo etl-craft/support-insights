@@ -1,17 +1,18 @@
 # Support Insights pipelines
 
 The config CSVs define execution order. SQL files contain one read-only SELECT per managed
-write. Python
+write; the maintenance files list their unmanaged Iceberg operations explicitly. Python
 scripts only read sources and publish their declared landing batches.
 
 Alpha/Beta run every 15 minutes and Gamma every five minutes, outside 02:00–03:00 UTC.
 SI_DM runs every six hours over committed ODS windows; it has no client success gate.
-SI_REFERENCE runs after seed deployment.
+SI_REFERENCE runs after seed deployment or detached from reference stewardship.
 
 Each client keeps raw fields in PRS history, opens current-run CDC rows, replaces only its
 PRE_ODS slice, then evaluates row rules. Only REJECT rows are excluded from ODS;
 INCOMPLETE and REPORT rows remain eligible. Rules read this run's rows and the SQL consumers read this run's
-committed flags. Business stewardship follows in its own slice.
+committed flags. Business steward corrections carry the original source_id and business key,
+with load_source=STEWARD and per-file upload attribution.
 
 The source supplies customer types, not customer identities; the ODS therefore normalizes
 interactions, agents, support areas and customer types. DM expands changed lookup entities to
@@ -49,13 +50,25 @@ PRE_ODS values. The `negative_duration` REJECT rule flags those keys; invalid id
 separate. Only REJECT rows are excluded from ODS; INCOMPLETE and REPORT rows remain eligible.
 For example: `python generators/client_beta_data_generator.py 3 --rejectable`.
 
-## Reserved maintenance window
+## Maintenance window
 
-Client schedules skip 02:00–03:00 UTC. Before maintenance, pause the client definitions,
-hold every active run (including a waiting Gamma run), and wait for active writers to finish.
-Release the exact holds and resume scheduled definitions with `--then wait` afterward.
-Gamma retains its original 55-minute deadline while held; an expired idle wait ends SKIPPED
-without an alert. The maintenance pipeline and its full walkthrough ship in the later slice.
+Client schedules skip 02:00–03:00 UTC. Before 02:00, pause each client definition with
+`etl-craft pause --pipeline-code SI_CLIENT_ALPHA --reason 'Iceberg maintenance'` (and Beta,
+Gamma), then hold each active run with
+`etl-craft hold --pipeline-code SI_CLIENT_GAMMA --run-id <id> --reason 'Iceberg maintenance'`.
+Hold waiting Gamma runs too: an arriving object must not admit ingestion during maintenance.
+Pause new business stewardship/DM admission and hold their active writer runs as well.
+Wait for already running write attempts to finish before SI_MAINTENANCE starts. A schedule
+skip does not drain writers. Keep holds if draining misses the window; do not overlap writes
+with maintenance.
+
+After successful maintenance, release each exact held run using
+`etl-craft release --pipeline-code <pipeline> --run-id <id> --reason 'Maintenance complete'`,
+then `etl-craft resume --pipeline-code <scheduled-pipeline> --then wait
+--reason 'Maintenance complete'` for each paused scheduled definition. Resume the unscheduled
+business steward definition without `--then`. Release and resume control different scopes. Gamma retains its original
+55-minute event deadline while held; an expired no-signal wait ends SKIPPED and sends no
+failure alert. The deployment runner that automates this sequence remains S8.E.
 
 The Iceberg REST fixture uses one JDBC catalog connection (`CATALOG_CLIENTS=1`) for its
 SQLite metadata database, WAL mode and a bounded 30-second busy timeout. This serializes
