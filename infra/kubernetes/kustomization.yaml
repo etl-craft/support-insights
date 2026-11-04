@@ -1,0 +1,82 @@
+resources:
+- engine.yml
+- services.yml
+- roles.yml
+- agents.yml
+- ingress.yml
+images:
+- name: etl-craft-project
+  newName: support-insights-project
+  newTag: dd25ca4a4da713d58e0611d771c8b4d2e9a1aacc
+patches:
+- target:
+    kind: Deployment
+    name: etl-craft-ui
+  patch: |-
+    - op: replace
+      path: /spec/template/spec/containers/0/volumeMounts/1/subPath
+      value: ui.yml
+- target:
+    kind: Deployment
+    name: agent-ingestion-.*
+  patch: |
+    - op: replace
+      path: /spec/template/spec/containers/0/args
+      value:
+      - agent
+      - --pool
+      - ingestion
+      - --python-slots
+      - '1'
+      - --warehouse-slots
+      - '0'
+    - op: add
+      path: /spec/template/spec/containers/0/env/-
+      value:
+        name: SSL_CERT_FILE
+        value: /etc/ssl/certs/demo-ca.crt
+    - op: add
+      path: /spec/template/spec/containers/0/volumeMounts/-
+      value:
+        name: ca
+        mountPath: /etc/ssl/certs/demo-ca.crt
+        subPath: ca.crt
+        readOnly: true
+    - op: add
+      path: /spec/template/spec/volumes/-
+      value:
+        name: ca
+        configMap:
+          name: demo-ca
+- target:
+    kind: Deployment
+    name: agent-warehouse-.*
+  patch: |
+    - op: replace
+      path: /spec/template/spec/containers/0/args
+      value:
+      - agent
+      - --pool
+      - warehouse
+      - --python-slots
+      - '0'
+      - --warehouse-slots
+      - '1'
+    - op: add
+      path: /spec/template/spec/containers/0/env/-
+      value:
+        name: SSL_CERT_FILE
+        value: /etc/ssl/certs/demo-ca.crt
+    - op: add
+      path: /spec/template/spec/containers/0/volumeMounts/-
+      value:
+        name: ca
+        mountPath: /etc/ssl/certs/demo-ca.crt
+        subPath: ca.crt
+        readOnly: true
+    - op: add
+      path: /spec/template/spec/volumes/-
+      value:
+        name: ca
+        configMap:
+          name: demo-ca

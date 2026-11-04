@@ -31,6 +31,8 @@ from tenacity import retry, stop_after_attempt, wait_fixed, retry_if_exception_t
 
 from db_operations import (
     connect_to_database,
+    reserve_batch,
+    KEY_SPACE,
     fetch_lookup_list,
     checkpoint_management,
     get_last_execution_info,
@@ -248,7 +250,7 @@ def generate_and_update_records(
 
             for _ in range(chunk_records):
                 serial_number += 1
-                interaction_id += 1
+                interaction_id = interaction_id % KEY_SPACE + 1
                 highest_interaction_id = interaction_id  # keep updated within the chunk
 
                 new_doc = generate_random_record(
@@ -279,6 +281,7 @@ def generate_and_update_records(
                 new_doc["_id"] = f"{serial_number}-{interaction_id}"
                 new_doc["serial_number"] = serial_number
                 new_doc["record_id"] = interaction_id
+                new_doc["created_at"] = datetime.now(timezone.utc)
 
                 operations.append(
                     UpdateOne({"_id": new_doc["_id"]}, {"$set": new_doc},
@@ -286,7 +289,7 @@ def generate_and_update_records(
                 new_records += 1
 
                 # Pseudo-update some earlier records (up to the latest seen in this chunk)
-                if random.random() < 0.25 and highest_interaction_id > 1:
+                if (records_processed + 1) % 4 == 0 and highest_interaction_id > 1:
                     serial_number += 1
                     update_interaction_id = random.randint(
                         1, highest_interaction_id)
@@ -299,6 +302,7 @@ def generate_and_update_records(
                     upd_doc["_id"] = f"{serial_number}-{update_interaction_id}"
                     upd_doc["serial_number"] = serial_number
                     upd_doc["record_id"] = update_interaction_id
+                    upd_doc["created_at"] = datetime.now(timezone.utc)
                     operations.append(
                         UpdateOne({"_id": upd_doc["_id"]}, {"$set": upd_doc},
                                   upsert=True))
@@ -483,7 +487,7 @@ def main() -> None:
 
     # Parse args
     try:
-        num_records = _parse_args()
+        num_records = reserve_batch(SCRIPT_NAME, _parse_args())
         if num_records <= 0:
             raise ValueError(
                 f"Number of records must be positive, got {num_records}")

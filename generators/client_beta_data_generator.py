@@ -27,6 +27,8 @@ from typing import List, Tuple
 from confluent_kafka import Producer, KafkaError
 from db_operations import (
     connect_to_database,
+    reserve_batch,
+    KEY_SPACE,
     fetch_lookup_list,
     checkpoint_management,
     get_last_execution_info,
@@ -255,7 +257,7 @@ def generate_and_update_records(
 
             for _ in range(chunk_records):
                 serial_number += 1
-                record_id += 1
+                record_id = record_id % KEY_SPACE + 1
                 highest_record_id = record_id
 
                 record = generate_random_record(record_id, support_categories,
@@ -294,7 +296,7 @@ def generate_and_update_records(
                 records_processed += 1
 
                 # Pseudo-update: send another record for a random earlier id
-                if random.random() < 0.25 and highest_record_id > 1:
+                if (records_processed + 1) % 4 == 0 and highest_record_id > 1:
                     serial_number += 1
                     update_record_id = random.randint(1, highest_record_id)
                     upd = generate_random_record(
@@ -436,7 +438,7 @@ def main() -> None:
 
     # Args
     try:
-        num_records = _parse_args()
+        num_records = reserve_batch(SCRIPT_NAME, _parse_args())
         if num_records <= 0:
             raise ValueError(
                 f"Number of records must be positive, got {num_records}")

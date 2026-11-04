@@ -172,3 +172,28 @@ def get_last_execution_info(
     except sqlite3.Error as e:
         raise sqlite3.Error(
             f"[DB ERROR] get_last_execution_info({script_name}): {e}")
+
+
+KEY_SPACE = 10_000
+DAILY_ROW_CAP = 10_000
+BATCH_LIMIT = 1_000
+
+
+def reserve_batch(script_name: str, count: int) -> int:
+    """Reserve the maximum emitted rows, including one update per four new rows."""
+    if not 1 <= count <= BATCH_LIMIT:
+        raise RuntimeError(f"{script_name}: batch {count}; expected 1..{BATCH_LIMIT}; reduce batch")
+    reserved = count + (count + 3) // 4
+    today = datetime.now(timezone.utc).date().isoformat()
+    with connect_to_database() as conn:
+        conn.execute("BEGIN IMMEDIATE")
+        conn.execute("DELETE FROM daily_budget WHERE day < ?", (today,))
+        conn.execute("INSERT OR IGNORE INTO daily_budget VALUES (?, ?, 0)", (today, script_name))
+        used = conn.execute("SELECT rows FROM daily_budget WHERE day=? AND client=?",
+                            (today, script_name)).fetchone()[0]
+        if used + reserved > DAILY_ROW_CAP:
+            raise RuntimeError(f"{script_name}: daily rows {used}+{reserved}; expected <= "
+                               f"{DAILY_ROW_CAP}; wait until the next UTC day")
+        conn.execute("UPDATE daily_budget SET rows=rows+? WHERE day=? AND client=?",
+                     (reserved, today, script_name))
+    return count
