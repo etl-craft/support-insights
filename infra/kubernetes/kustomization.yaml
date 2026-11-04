@@ -7,12 +7,21 @@ resources:
 images:
 - name: etl-craft-project
   newName: support-insights-project
-  newTag: dd25ca4a4da713d58e0611d771c8b4d2e9a1aacc
+  newTag: 87a4a1785b9268304d3c193457117a2edfb9fa0e
+- name: support-insights-generator
+  newTag: 87a4a1785b9268304d3c193457117a2edfb9fa0e
 patches:
 - target:
     kind: Deployment
     name: etl-craft-ui
   patch: |-
+    - op: add
+      path: /spec/strategy
+      value:
+        type: RollingUpdate
+        rollingUpdate:
+          maxSurge: 0
+          maxUnavailable: 1
     - op: replace
       path: /spec/template/spec/containers/0/volumeMounts/1/subPath
       value: ui.yml
@@ -20,6 +29,9 @@ patches:
     kind: Deployment
     name: agent-ingestion-.*
   patch: |
+    - op: replace
+      path: /spec/template/spec/containers/0/image
+      value: support-insights-ingestion:87a4a1785b9268304d3c193457117a2edfb9fa0e
     - op: replace
       path: /spec/template/spec/containers/0/args
       value:
@@ -80,3 +92,67 @@ patches:
         name: ca
         configMap:
           name: demo-ca
+- target:
+    kind: Deployment
+    name: etl-craft-(controller|ui)
+  patch: |
+    - op: add
+      path: /spec/template/spec/containers/0/volumeMounts/-
+      value:
+        name: provider
+        mountPath: /secrets
+        readOnly: true
+    - op: add
+      path: /spec/template/spec/volumes/-
+      value:
+        name: provider
+        secret:
+          secretName: etl-craft-provider
+          defaultMode: 288
+
+- target:
+    kind: Deployment
+    name: etl-craft-(controller|ui)
+  patch: |-
+    - op: add
+      path: /spec/template/spec/initContainers
+      value:
+      - name: upload-directories
+        image: support-insights-project:87a4a1785b9268304d3c193457117a2edfb9fa0e
+        command: ["/bin/sh", "-c", "mkdir -p /shared/uploads /shared/processed_uploads"]
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: [ALL]
+        resources:
+          requests:
+            cpu: 10m
+            memory: 16Mi
+          limits:
+            cpu: 100m
+            memory: 64Mi
+        volumeMounts:
+        - name: project
+          mountPath: /shared
+    - op: replace
+      path: /spec/template/spec/containers/0/volumeMounts/1/mountPath
+      value: /project/artifacts/craft-connector.yml
+    - op: add
+      path: /spec/template/spec/containers/0/args/-
+      value: --config
+    - op: add
+      path: /spec/template/spec/containers/0/args/-
+      value: /project/artifacts/craft-connector.yml
+
+- target:
+    kind: Deployment
+    name: agent-.*
+  patch: |-
+    - op: add
+      path: /spec/template/spec/containers/0/env/-
+      value:
+        name: ETL_CRAFT_AGENT_INSTANCE_ID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid

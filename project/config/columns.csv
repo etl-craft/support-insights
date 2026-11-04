@@ -1,0 +1,74 @@
+CATALOG_NAME,SCHEMA_NAME,TABLE_NAME,COLUMN_NAME,DATA_TYPE,COLUMN_POSITION,IS_NULLABLE,ACTIVE_FLAG
+warehouse,lnd,client_alpha_cs_data,source_system_identifier,VARCHAR,1,Y,Y
+warehouse,lnd,client_alpha_cs_data,source_timestamp,TIMESTAMP(6) WITH TIME ZONE,2,Y,Y
+warehouse,lnd,client_alpha_cs_data,interaction_id,VARCHAR,3,Y,Y
+warehouse,lnd,client_alpha_cs_data,support_category,VARCHAR,4,Y,Y
+warehouse,lnd,client_alpha_cs_data,agent_pseudo_name,VARCHAR,5,Y,Y
+warehouse,lnd,client_alpha_cs_data,contact_date,VARCHAR,6,Y,Y
+warehouse,lnd,client_alpha_cs_data,interaction_status,VARCHAR,7,Y,Y
+warehouse,lnd,client_alpha_cs_data,interaction_type,VARCHAR,8,Y,Y
+warehouse,lnd,client_alpha_cs_data,type_of_customer,VARCHAR,9,Y,Y
+warehouse,lnd,client_alpha_cs_data,interaction_duration,VARCHAR,10,Y,Y
+warehouse,lnd,client_alpha_cs_data,total_time,VARCHAR,11,Y,Y
+warehouse,lnd,client_alpha_cs_data,status_of_customer_incident,VARCHAR,12,Y,Y
+warehouse,lnd,client_alpha_cs_data,resolved_in_first_contact,VARCHAR,13,Y,Y
+warehouse,lnd,client_alpha_cs_data,solution_type,VARCHAR,14,Y,Y
+warehouse,lnd,client_alpha_cs_data,rating,VARCHAR,15,Y,Y
+warehouse,lnd,client_alpha_cs_data,serial_number,BIGINT,16,Y,Y
+warehouse,lnd,client_alpha_cs_data,landing_task_id,BIGINT,17,Y,Y
+warehouse,lnd,client_alpha_cs_data,item_key,VARCHAR,18,Y,Y
+warehouse,lnd,client_alpha_cs_data,row_id,BIGINT,19,Y,Y
+warehouse,lnd,client_alpha_cs_data,pipeline_id,BIGINT,20,Y,Y
+warehouse,lnd,client_alpha_cs_data,pipeline_run_id,BIGINT,21,Y,Y
+warehouse,lnd,client_alpha_cs_data,task_run_id,BIGINT,22,Y,Y
+warehouse,lnd,client_alpha_cs_data,create_date,TIMESTAMP(6) WITH TIME ZONE,23,Y,Y
+warehouse,lnd,client_beta_cs_data,source_system_identifier,VARCHAR,1,Y,Y
+warehouse,lnd,client_beta_cs_data,source_timestamp,TIMESTAMP(6) WITH TIME ZONE,2,Y,Y
+warehouse,lnd,client_beta_cs_data,support_identifier,VARCHAR,3,Y,Y
+warehouse,lnd,client_beta_cs_data,contact_regarding,VARCHAR,4,Y,Y
+warehouse,lnd,client_beta_cs_data,agent_code,VARCHAR,5,Y,Y
+warehouse,lnd,client_beta_cs_data,date_of_interaction,VARCHAR,6,Y,Y
+warehouse,lnd,client_beta_cs_data,status_of_interaction,VARCHAR,7,Y,Y
+warehouse,lnd,client_beta_cs_data,type_of_interaction,VARCHAR,8,Y,Y
+warehouse,lnd,client_beta_cs_data,customer_type,VARCHAR,9,Y,Y
+warehouse,lnd,client_beta_cs_data,contact_duration,VARCHAR,10,Y,Y
+warehouse,lnd,client_beta_cs_data,after_contact_work_time,VARCHAR,11,Y,Y
+warehouse,lnd,client_beta_cs_data,incident_status,VARCHAR,12,Y,Y
+warehouse,lnd,client_beta_cs_data,first_contact_solve,VARCHAR,13,Y,Y
+warehouse,lnd,client_beta_cs_data,type_of_resolution,VARCHAR,14,Y,Y
+warehouse,lnd,client_beta_cs_data,support_rating,VARCHAR,15,Y,Y
+warehouse,lnd,client_beta_cs_data,time_stamp,VARCHAR,16,Y,Y
+warehouse,lnd,client_beta_cs_data,source_partition,BIGINT,17,Y,Y
+warehouse,lnd,client_beta_cs_data,source_offset,BIGINT,18,Y,Y
+warehouse,lnd,client_beta_cs_data,landing_task_id,BIGINT,19,Y,Y
+warehouse,lnd,client_beta_cs_data,item_key,VARCHAR,20,Y,Y
+warehouse,lnd,client_beta_cs_data,row_id,BIGINT,21,Y,Y
+warehouse,lnd,client_beta_cs_data,pipeline_id,BIGINT,22,Y,Y
+warehouse,lnd,client_beta_cs_data,pipeline_run_id,BIGINT,23,Y,Y
+warehouse,lnd,client_beta_cs_data,task_run_id,BIGINT,24,Y,Y
+warehouse,lnd,client_beta_cs_data,create_date,TIMESTAMP(6) WITH TIME ZONE,25,Y,Y
+warehouse,lnd,client_gamma_cs_data,source_system_identifier,VARCHAR,1,Y,Y
+warehouse,lnd,client_gamma_cs_data,source_timestamp,TIMESTAMP(6) WITH TIME ZONE,2,Y,Y
+warehouse,lnd,client_gamma_cs_data,ticket_identifier,VARCHAR,3,Y,Y
+warehouse,lnd,client_gamma_cs_data,support_category,VARCHAR,4,Y,Y
+warehouse,lnd,client_gamma_cs_data,agent_name,VARCHAR,5,Y,Y
+warehouse,lnd,client_gamma_cs_data,date_of_call,VARCHAR,6,Y,Y
+warehouse,lnd,client_gamma_cs_data,call_status,VARCHAR,7,Y,Y
+warehouse,lnd,client_gamma_cs_data,call_type,VARCHAR,8,Y,Y
+warehouse,lnd,client_gamma_cs_data,type_of_customer,VARCHAR,9,Y,Y
+warehouse,lnd,client_gamma_cs_data,duration,VARCHAR,10,Y,Y
+warehouse,lnd,client_gamma_cs_data,work_time,VARCHAR,11,Y,Y
+warehouse,lnd,client_gamma_cs_data,ticket_status,VARCHAR,12,Y,Y
+warehouse,lnd,client_gamma_cs_data,resolved_in_first_contact,VARCHAR,13,Y,Y
+warehouse,lnd,client_gamma_cs_data,resolution_category,VARCHAR,14,Y,Y
+warehouse,lnd,client_gamma_cs_data,rating,VARCHAR,15,Y,Y
+warehouse,lnd,client_gamma_cs_data,source_object,VARCHAR,16,Y,Y
+warehouse,lnd,client_gamma_cs_data,source_etag,VARCHAR,17,Y,Y
+warehouse,lnd,client_gamma_cs_data,source_row,BIGINT,18,Y,Y
+warehouse,lnd,client_gamma_cs_data,landing_task_id,BIGINT,19,Y,Y
+warehouse,lnd,client_gamma_cs_data,item_key,VARCHAR,20,Y,Y
+warehouse,lnd,client_gamma_cs_data,row_id,BIGINT,21,Y,Y
+warehouse,lnd,client_gamma_cs_data,pipeline_id,BIGINT,22,Y,Y
+warehouse,lnd,client_gamma_cs_data,pipeline_run_id,BIGINT,23,Y,Y
+warehouse,lnd,client_gamma_cs_data,task_run_id,BIGINT,24,Y,Y
+warehouse,lnd,client_gamma_cs_data,create_date,TIMESTAMP(6) WITH TIME ZONE,25,Y,Y

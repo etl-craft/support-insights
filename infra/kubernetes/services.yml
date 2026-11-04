@@ -345,7 +345,9 @@ spec:
         - name: CATALOG_WAREHOUSE
           value: s3://warehouse/
         - name: CATALOG_URI
-          value: jdbc:sqlite:/data/catalog.db
+          value: jdbc:sqlite:/data/catalog.db?journal_mode=WAL&busy_timeout=30000&transaction_mode=IMMEDIATE
+        - name: CATALOG_CLIENTS
+          value: '1'
         - name: CATALOG_JDBC_USER
           value: user
         - name: CATALOG_JDBC_PASSWORD

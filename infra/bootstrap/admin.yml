@@ -10,7 +10,7 @@ spec:
     fsGroup: 10001
   containers:
   - name: admin
-    image: support-insights-project:dd25ca4a4da713d58e0611d771c8b4d2e9a1aacc
+    image: support-insights-project:87a4a1785b9268304d3c193457117a2edfb9fa0e
     imagePullPolicy: Never
     command: [sh, -c, 'sleep 3600']
     envFrom:
@@ -22,8 +22,11 @@ spec:
     volumeMounts:
     - {name: config, mountPath: /project/craft-connector.yml, subPath: engine.yml}
     - {name: state, mountPath: /state}
+    - {name: provider, mountPath: /secrets, readOnly: true}
   volumes:
   - name: config
     configMap: {name: etl-craft-config}
   - name: state
     emptyDir: {}
+  - name: provider
+    secret: {secretName: etl-craft-provider, defaultMode: 288}

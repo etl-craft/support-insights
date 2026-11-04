@@ -1,3 +1,7 @@
 COLUMN_NAME|DATA_TYPE|KEY_FLAG
-customer_type_code|VARCHAR(100)|Y
-customer_type_name|VARCHAR(100)|N
+customer_type_id|BIGINT|Y
+customer_type_name|VARCHAR|N
+source_id|BIGINT|N
+description|VARCHAR|N
+is_active|BOOLEAN|N
+upload_id|BIGINT|N

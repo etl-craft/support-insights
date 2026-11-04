@@ -1,3 +1,7 @@
 COLUMN_NAME|DATA_TYPE|KEY_FLAG
-area_code|VARCHAR(100)|Y
-area_name|VARCHAR(100)|N
+support_area_id|BIGINT|Y
+support_area_name|VARCHAR|N
+source_id|BIGINT|N
+description|VARCHAR|N
+is_active|BOOLEAN|N
+upload_id|BIGINT|N
