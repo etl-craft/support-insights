@@ -27,6 +27,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Dict, Any, Optional, List, Tuple
 
 from aiohttp import web
+from gamma_webhook import receive
 from urllib.parse import quote
 
 # ============================ Configuration ============================= #
@@ -145,7 +146,7 @@ def discover_scripts() -> ScriptStatus:
                 if not filename.endswith(".py"):
                     continue
                 if filename in {
-                        "data_generator_orchestrator.py", "db_operations.py"
+                        "data_generator_orchestrator.py", "db_operations.py", "initialize.py", "gamma_webhook.py"
                 }:
                     continue
                 script_name = os.path.splitext(filename)[0]
@@ -281,6 +282,7 @@ async def run_script(
     db_conn: sqlite3.Connection,
 ) -> None:
     """Run a discovered generator script once and persist its outcome."""
+    cleanup_old_logs()
     script_path = status_map[script_name]["script_path"]
     log_path = os.path.join(
         LOG_DIR,
@@ -804,7 +806,7 @@ async def status_handler(request: web.Request) -> web.Response:
     status_map = request.app["script_status"]
     return web.json_response({
         k: {
-            kk: vv
+            kk: vv.isoformat() if isinstance(vv, datetime) else vv
             for kk, vv in v.items() if kk != "task"
         }
         for k, v in status_map.items()
@@ -948,6 +950,7 @@ async def main() -> None:
         web.get("/toggle", toggle_handler),
         web.post("/toggle", toggle_handler),
         web.get("/health", health_handler),
+        web.post("/gamma/events", receive),
         web.get("/metrics", metrics_handler),
         web.get("/favicon.ico", favicon_handler),
     ])

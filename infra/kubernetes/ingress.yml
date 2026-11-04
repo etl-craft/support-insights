@@ -1,0 +1,52 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: support-insights
+spec:
+  ingressClassName: traefik
+  rules:
+  - host: craft.localhost
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: etl-craft-ui
+            port:
+              number: 8730
+  - host: generator.localhost
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: generator
+            port:
+              number: 1212
+  - host: mail.localhost
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: mailpit
+            port:
+              number: 8025
+  - host: traefik.kube-system.svc
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: etl-craft-ui
+            port:
+              number: 8730
+  tls:
+  - secretName: craft-tls
+    hosts:
+    - craft.localhost
+    - traefik.kube-system.svc

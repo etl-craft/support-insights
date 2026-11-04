@@ -1,0 +1,70 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: engine
+spec:
+  instances: 3
+  imageName: ghcr.io/cloudnative-pg/postgresql:16.11
+  affinity:
+    enablePodAntiAffinity: false
+  storage:
+    size: 2Gi
+  resources:
+    requests:
+      cpu: 20m
+      memory: 128Mi
+    limits:
+      cpu: '1'
+      memory: 512Mi
+  postgresql:
+    synchronous:
+      method: any
+      number: 1
+      dataDurability: required
+    parameters:
+      shared_buffers: 64MB
+      max_connections: '100'
+      max_wal_size: 256MB
+  bootstrap:
+    initdb:
+      database: etl_craft
+      owner: etl_craft
+      postInitApplicationSQL:
+      - CREATE SCHEMA etl_craft AUTHORIZATION etl_craft;
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Pooler
+metadata:
+  name: engine-ui
+spec:
+  cluster:
+    name: engine
+  instances: 1
+  type: rw
+  pgbouncer:
+    poolMode: transaction
+    parameters:
+      max_client_conn: '100'
+      default_pool_size: '15'
+  template:
+    spec:
+      containers:
+      - name: pgbouncer
+        resources:
+          requests:
+            cpu: 20m
+            memory: 32Mi
+          limits:
+            cpu: '1'
+            memory: 128Mi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: etl-craft-project
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi

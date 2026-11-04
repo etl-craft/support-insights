@@ -1,0 +1,719 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: minio-gamma
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: minio-gamma
+  template:
+    metadata:
+      labels:
+        app: minio-gamma
+    spec:
+      containers:
+      - name: minio-gamma
+        image: pgsty/minio:RELEASE.2026-08-04T00-00-00Z
+        resources:
+          requests:
+            cpu: 20m
+            memory: 64Mi
+          limits:
+            cpu: '1'
+            memory: 512Mi
+        ports:
+        - containerPort: 9000
+        - containerPort: 9001
+        env:
+        - name: MINIO_ROOT_USER
+          value: minioadmin
+        - name: MINIO_ROOT_PASSWORD
+          value: local-demo-only
+        - name: MINIO_NOTIFY_WEBHOOK_ENABLE_GAMMA
+          value: 'on'
+        - name: MINIO_NOTIFY_WEBHOOK_ENDPOINT_GAMMA
+          value: http://generator:1212/gamma/events
+        - name: MINIO_NOTIFY_WEBHOOK_AUTH_TOKEN_GAMMA
+          value: local-webhook-only
+        - name: MINIO_NOTIFY_WEBHOOK_QUEUE_DIR_GAMMA
+          value: /data/.events
+        args:
+        - server
+        - /data
+        - --console-address
+        - :9001
+        volumeMounts:
+        - name: data
+          mountPath: /data
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: minio-gamma
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio-gamma
+spec:
+  selector:
+    app: minio-gamma
+  ports:
+  - name: p9000
+    port: 9000
+    targetPort: 9000
+  - name: p9001
+    port: 9001
+    targetPort: 9001
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: minio-gamma
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 4Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: minio-lake
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: minio-lake
+  template:
+    metadata:
+      labels:
+        app: minio-lake
+    spec:
+      containers:
+      - name: minio-lake
+        image: pgsty/minio:RELEASE.2026-08-04T00-00-00Z
+        resources:
+          requests:
+            cpu: 20m
+            memory: 64Mi
+          limits:
+            cpu: '1'
+            memory: 512Mi
+        ports:
+        - containerPort: 9000
+        - containerPort: 9001
+        env:
+        - name: MINIO_ROOT_USER
+          value: minioadmin
+        - name: MINIO_ROOT_PASSWORD
+          value: local-demo-only
+        args:
+        - server
+        - /data
+        - --console-address
+        - :9001
+        volumeMounts:
+        - name: data
+          mountPath: /data
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: minio-lake
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio-lake
+spec:
+  selector:
+    app: minio-lake
+  ports:
+  - name: p9000
+    port: 9000
+    targetPort: 9000
+  - name: p9001
+    port: 9001
+    targetPort: 9001
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: minio-lake
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 4Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongodb
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: mongodb
+  template:
+    metadata:
+      labels:
+        app: mongodb
+    spec:
+      containers:
+      - name: mongodb
+        image: mongo:8.0.16
+        resources:
+          requests:
+            cpu: 20m
+            memory: 64Mi
+          limits:
+            cpu: '1'
+            memory: 512Mi
+        ports:
+        - containerPort: 27017
+        env:
+        - name: MONGO_INITDB_ROOT_USERNAME
+          value: generator
+        - name: MONGO_INITDB_ROOT_PASSWORD
+          value: local-mongo-only
+        args:
+        - --wiredTigerCacheSizeGB
+        - '0.25'
+        volumeMounts:
+        - name: data
+          mountPath: /data/db
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: mongodb
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb
+spec:
+  selector:
+    app: mongodb
+  ports:
+  - name: p27017
+    port: 27017
+    targetPort: 27017
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mongodb
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: kafka
+  template:
+    metadata:
+      labels:
+        app: kafka
+    spec:
+      containers:
+      - name: kafka
+        image: apache/kafka:4.1.1
+        resources:
+          requests:
+            cpu: 20m
+            memory: 128Mi
+          limits:
+            cpu: '1'
+            memory: 768Mi
+        ports:
+        - containerPort: 9092
+        env:
+        - name: KAFKA_NODE_ID
+          value: '1'
+        - name: KAFKA_PROCESS_ROLES
+          value: broker,controller
+        - name: KAFKA_LISTENERS
+          value: PLAINTEXT://:9092,CONTROLLER://:9093
+        - name: KAFKA_ADVERTISED_LISTENERS
+          value: PLAINTEXT://kafka:9092
+        - name: KAFKA_LISTENER_SECURITY_PROTOCOL_MAP
+          value: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+        - name: KAFKA_CONTROLLER_LISTENER_NAMES
+          value: CONTROLLER
+        - name: KAFKA_CONTROLLER_QUORUM_VOTERS
+          value: 1@localhost:9093
+        - name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR
+          value: '1'
+        - name: KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR
+          value: '1'
+        - name: KAFKA_TRANSACTION_STATE_LOG_MIN_ISR
+          value: '1'
+        - name: KAFKA_LOG_RETENTION_MS
+          value: '86400000'
+        - name: KAFKA_LOG_RETENTION_BYTES
+          value: '268435456'
+        - name: KAFKA_LOG_SEGMENT_BYTES
+          value: '16777216'
+        - name: KAFKA_LOG_DIRS
+          value: /var/lib/kafka/data
+        - name: KAFKA_HEAP_OPTS
+          value: -Xms128m -Xmx256m
+        - name: CLUSTER_ID
+          value: MkU3OEVBNTcwNTJENDM2Qk
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/kafka
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: kafka
+      securityContext:
+        fsGroup: 1000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka
+spec:
+  selector:
+    app: kafka
+  ports:
+  - name: p9092
+    port: 9092
+    targetPort: 9092
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: kafka
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: iceberg-rest
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: iceberg-rest
+  template:
+    metadata:
+      labels:
+        app: iceberg-rest
+    spec:
+      containers:
+      - name: iceberg-rest
+        image: apache/iceberg-rest-fixture:1.10.1
+        resources:
+          requests:
+            cpu: 20m
+            memory: 64Mi
+          limits:
+            cpu: '1'
+            memory: 512Mi
+        ports:
+        - containerPort: 8181
+        env:
+        - name: CATALOG_WAREHOUSE
+          value: s3://warehouse/
+        - name: CATALOG_URI
+          value: jdbc:sqlite:/data/catalog.db
+        - name: CATALOG_JDBC_USER
+          value: user
+        - name: CATALOG_JDBC_PASSWORD
+          value: password
+        - name: CATALOG_IO__IMPL
+          value: org.apache.iceberg.aws.s3.S3FileIO
+        - name: CATALOG_S3_ENDPOINT
+          value: http://minio-lake:9000
+        - name: CATALOG_S3_PATH__STYLE__ACCESS
+          value: 'true'
+        - name: AWS_ACCESS_KEY_ID
+          value: minioadmin
+        - name: AWS_SECRET_ACCESS_KEY
+          value: local-demo-only
+        - name: AWS_REGION
+          value: us-east-1
+        - name: JAVA_TOOL_OPTIONS
+          value: -Xms64m -Xmx256m
+        volumeMounts:
+        - name: data
+          mountPath: /data
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: iceberg-rest
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: iceberg-rest
+spec:
+  selector:
+    app: iceberg-rest
+  ports:
+  - name: p8181
+    port: 8181
+    targetPort: 8181
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: iceberg-rest
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: trino-config
+data:
+  config.properties: 'coordinator=true
+
+    node-scheduler.include-coordinator=true
+
+    http-server.http.port=8080
+
+    discovery.uri=http://localhost:8080
+
+    query.max-memory=768MB
+
+    query.max-memory-per-node=768MB
+
+    memory.heap-headroom-per-node=512MB
+
+    '
+  node.properties: 'node.environment=demo
+
+    node.id=support-insights
+
+    node.data-dir=/tmp/trino
+
+    '
+  jvm.config: '-server
+
+    -Xmx2G
+
+    -XX:+UseG1GC
+
+    -XX:+ExitOnOutOfMemoryError
+
+    '
+  warehouse.properties: '# Trino''s Iceberg connector, reading the local REST catalog
+    and storing data in MinIO.
+
+    connector.name=iceberg
+
+    iceberg.catalog.type=rest
+
+    iceberg.rest-catalog.uri=http://iceberg-rest:8181
+
+    iceberg.rest-catalog.warehouse=s3://warehouse/
+
+    fs.s3.enabled=true
+
+    s3.endpoint=http://minio-lake:9000
+
+    s3.region=us-east-1
+
+    s3.aws-access-key=minioadmin
+
+    s3.aws-secret-key=local-demo-only
+
+    # MinIO serves buckets as paths, not subdomains.
+
+    s3.path-style-access=true
+
+
+    iceberg.expire-snapshots.min-retention=1d
+
+    iceberg.remove-orphan-files.min-retention=1d
+
+    '
+  access-control.properties: 'access-control.name=file
+
+    security.config-file=/etc/trino/rules.json
+
+    '
+  rules.json: '{"catalogs": [{"user": "gamma_signal", "catalog": "warehouse", "allow":
+    "all"}, {"user": ".*", "allow": "all"}], "schemas": [{"user": "gamma_signal",
+    "catalog": "warehouse", "schema": "lnd", "owner": false}, {"user": "gamma_signal",
+    "owner": false}, {"user": ".*", "owner": true}], "tables": [{"user": "gamma_signal",
+    "catalog": "warehouse", "schema": "lnd", "table": "gamma_object_events", "privileges":
+    ["INSERT"]}, {"user": "gamma_signal", "privileges": []}, {"user": ".*", "privileges":
+    ["SELECT", "INSERT", "DELETE", "UPDATE", "OWNERSHIP", "GRANT_SELECT"]}]}'
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: trino
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: trino
+  template:
+    metadata:
+      labels:
+        app: trino
+    spec:
+      containers:
+      - name: trino
+        image: trinodb/trino:483
+        resources:
+          requests:
+            cpu: 20m
+            memory: 2560Mi
+          limits:
+            cpu: '1'
+            memory: 3Gi
+        ports:
+        - containerPort: 8080
+        volumeMounts:
+        - name: trino-config
+          mountPath: /etc/trino
+        readinessProbe:
+          httpGet:
+            path: /v1/info
+            port: 8080
+          initialDelaySeconds: 15
+          periodSeconds: 5
+      volumes:
+      - name: trino-config
+        configMap:
+          name: trino-config
+          items:
+          - key: config.properties
+            path: config.properties
+          - key: node.properties
+            path: node.properties
+          - key: jvm.config
+            path: jvm.config
+          - key: warehouse.properties
+            path: catalog/warehouse.properties
+          - key: access-control.properties
+            path: access-control.properties
+          - key: rules.json
+            path: rules.json
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: trino
+spec:
+  selector:
+    app: trino
+  ports:
+  - name: p8080
+    port: 8080
+    targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mailpit
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: mailpit
+  template:
+    metadata:
+      labels:
+        app: mailpit
+    spec:
+      containers:
+      - name: mailpit
+        image: axllent/mailpit:v1.31
+        resources:
+          requests:
+            cpu: 20m
+            memory: 16Mi
+          limits:
+            cpu: '1'
+            memory: 128Mi
+        ports:
+        - containerPort: 1025
+        - containerPort: 8025
+        env:
+        - name: MP_MAX_MESSAGES
+          value: '1000'
+        - name: MP_DATABASE
+          value: /data/mailpit.db
+        volumeMounts:
+        - name: data
+          mountPath: /data
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: mailpit
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mailpit
+spec:
+  selector:
+    app: mailpit
+  ports:
+  - name: p1025
+    port: 1025
+    targetPort: 1025
+  - name: p8025
+    port: 8025
+    targetPort: 8025
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mailpit
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 256Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: generator
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: generator
+  template:
+    metadata:
+      labels:
+        app: generator
+    spec:
+      containers:
+      - name: generator
+        image: support-insights-generator:s8a
+        resources:
+          requests:
+            cpu: 20m
+            memory: 64Mi
+          limits:
+            cpu: '1'
+            memory: 512Mi
+        ports:
+        - containerPort: 1212
+        env:
+        - name: ORCH_SCRIPT_DIRS
+          value: /app/generators
+        - name: ORCH_INPUT_MIN
+          value: '100'
+        - name: ORCH_INPUT_MAX
+          value: '1000'
+        - name: ORCH_DB_FILE
+          value: /app/storage/orchestrator.db
+        - name: SQLITE_DB_FILE
+          value: /app/storage/generator.db
+        - name: ORCH_NEXT_DELAY_MIN
+          value: '300'
+        - name: ORCH_NEXT_DELAY_MAX
+          value: '600'
+        - name: CHUNK_SIZE
+          value: '100'
+        - name: MONGO_HOST
+          value: mongodb
+        - name: MONGO_PORT
+          value: '27017'
+        - name: MONGO_DB
+          value: support_insights
+        - name: MONGO_COLLECTION
+          value: support
+        - name: MONGO_USER
+          value: generator
+        - name: MONGO_PASSWORD
+          value: local-mongo-only
+        - name: KAFKA_BOOTSTRAP_SERVERS
+          value: kafka:9092
+        - name: KAFKA_CLIENT_BETA_STORAGE_TOPIC
+          value: client-beta
+        - name: MINIO_ENDPOINT
+          value: http://minio-gamma:9000
+        - name: MINIO_USER
+          value: minioadmin
+        - name: MINIO_PASSWORD
+          value: local-demo-only
+        - name: MINIO_CLIENT_GAMMA_STORAGE_BUCKET
+          value: gamma
+        - name: GAMMA_WEBHOOK_TOKEN
+          value: local-webhook-only
+        - name: MINIO_HOST
+          value: minio-gamma
+        - name: MINIO_PORT
+          value: '9000'
+        volumeMounts:
+        - name: data
+          mountPath: /app/storage
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: generator
+      securityContext:
+        fsGroup: 10001
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: generator
+spec:
+  selector:
+    app: generator
+  ports:
+  - name: p1212
+    port: 1212
+    targetPort: 1212
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: generator
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi

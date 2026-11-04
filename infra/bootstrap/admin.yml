@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: craft-admin
+spec:
+  restartPolicy: Never
+  securityContext:
+    runAsUser: 10001
+    runAsGroup: 10001
+    fsGroup: 10001
+  containers:
+  - name: admin
+    image: support-insights-project:dd25ca4a4da713d58e0611d771c8b4d2e9a1aacc
+    imagePullPolicy: Never
+    command: [sh, -c, 'sleep 3600']
+    envFrom:
+    - secretRef:
+        name: etl-craft-engine
+    resources:
+      requests: {cpu: 20m, memory: 128Mi}
+      limits: {cpu: '1', memory: 768Mi}
+    volumeMounts:
+    - {name: config, mountPath: /project/craft-connector.yml, subPath: engine.yml}
+    - {name: state, mountPath: /state}
+  volumes:
+  - name: config
+    configMap: {name: etl-craft-config}
+  - name: state
+    emptyDir: {}

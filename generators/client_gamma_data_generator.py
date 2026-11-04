@@ -30,6 +30,8 @@ from botocore.exceptions import ClientError, BotoCoreError
 
 from db_operations import (
     connect_to_database,
+    reserve_batch,
+    KEY_SPACE,
     fetch_lookup_list,
     checkpoint_management,
     get_last_execution_info,
@@ -285,7 +287,7 @@ def generate_and_upload_chunks(
         )
 
         for _ in range(chunk_records):
-            record_id += 1
+            record_id = record_id % KEY_SPACE + 1
             highest_record_id = record_id
 
             rec = generate_random_record(record_id, support_categories,
@@ -302,7 +304,7 @@ def generate_and_upload_chunks(
             new_records += 1
             records_processed += 1
 
-            if random.random() < 0.25 and highest_record_id > 1:
+            if (records_processed + 1) % 4 == 0 and highest_record_id > 1:
                 upd_id = random.randint(1, highest_record_id)
                 upd = generate_random_record(upd_id, support_categories,
                                              agent_pseudo_names,
@@ -418,7 +420,7 @@ def main() -> None:
 
     # args
     try:
-        num_records = _parse_args()
+        num_records = reserve_batch(SCRIPT_NAME, _parse_args())
         if num_records <= 0:
             raise ValueError(
                 f"Number of records must be positive, got {num_records}")

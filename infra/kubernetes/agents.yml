@@ -1,0 +1,1091 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-ingestion-01
+  labels:
+    pool: ingestion
+spec:
+  replicas: 1
+  selector:
+    matchLabels: &id001
+      app: agent-ingestion-01
+      pool: ingestion
+  template:
+    metadata:
+      labels: *id001
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 310
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: agent
+        image: etl-craft-project:1.0.0rc1
+        args:
+        - agent
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: '2'
+            memory: 256Mi
+        volumeMounts:
+        - name: config
+          mountPath: /state/craft-connector.yml
+          subPath: agent.yml
+          readOnly: true
+        - name: state
+          mountPath: /state
+        - name: tmp
+          mountPath: /tmp
+        env:
+        - name: ETL_CRAFT_CONFIG
+          value: /state/craft-connector.yml
+        - name: ETL_CRAFT_API
+          valueFrom:
+            configMapKeyRef:
+              name: etl-craft-config
+              key: api-url
+        - name: ETL_CRAFT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: etl-craft-agent-ingestion-01
+              key: ETL_CRAFT_TOKEN
+        startupProbe:
+          exec: &id002
+            command:
+            - etl-craft
+            - agent
+            - health
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 12
+        readinessProbe: &id003
+          exec: *id002
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        livenessProbe: *id003
+      volumes:
+      - name: config
+        configMap:
+          name: etl-craft-config
+      - name: state
+        emptyDir: {}
+      - name: tmp
+        emptyDir: {}
+  strategy:
+    type: Recreate
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-ingestion-02
+  labels:
+    pool: ingestion
+spec:
+  replicas: 1
+  selector:
+    matchLabels: &id001
+      app: agent-ingestion-02
+      pool: ingestion
+  template:
+    metadata:
+      labels: *id001
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 310
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: agent
+        image: etl-craft-project:1.0.0rc1
+        args:
+        - agent
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: '2'
+            memory: 256Mi
+        volumeMounts:
+        - name: config
+          mountPath: /state/craft-connector.yml
+          subPath: agent.yml
+          readOnly: true
+        - name: state
+          mountPath: /state
+        - name: tmp
+          mountPath: /tmp
+        env:
+        - name: ETL_CRAFT_CONFIG
+          value: /state/craft-connector.yml
+        - name: ETL_CRAFT_API
+          valueFrom:
+            configMapKeyRef:
+              name: etl-craft-config
+              key: api-url
+        - name: ETL_CRAFT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: etl-craft-agent-ingestion-02
+              key: ETL_CRAFT_TOKEN
+        startupProbe:
+          exec: &id002
+            command:
+            - etl-craft
+            - agent
+            - health
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 12
+        readinessProbe: &id003
+          exec: *id002
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        livenessProbe: *id003
+      volumes:
+      - name: config
+        configMap:
+          name: etl-craft-config
+      - name: state
+        emptyDir: {}
+      - name: tmp
+        emptyDir: {}
+  strategy:
+    type: Recreate
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-ingestion-03
+  labels:
+    pool: ingestion
+spec:
+  replicas: 1
+  selector:
+    matchLabels: &id001
+      app: agent-ingestion-03
+      pool: ingestion
+  template:
+    metadata:
+      labels: *id001
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 310
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: agent
+        image: etl-craft-project:1.0.0rc1
+        args:
+        - agent
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: '2'
+            memory: 256Mi
+        volumeMounts:
+        - name: config
+          mountPath: /state/craft-connector.yml
+          subPath: agent.yml
+          readOnly: true
+        - name: state
+          mountPath: /state
+        - name: tmp
+          mountPath: /tmp
+        env:
+        - name: ETL_CRAFT_CONFIG
+          value: /state/craft-connector.yml
+        - name: ETL_CRAFT_API
+          valueFrom:
+            configMapKeyRef:
+              name: etl-craft-config
+              key: api-url
+        - name: ETL_CRAFT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: etl-craft-agent-ingestion-03
+              key: ETL_CRAFT_TOKEN
+        startupProbe:
+          exec: &id002
+            command:
+            - etl-craft
+            - agent
+            - health
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 12
+        readinessProbe: &id003
+          exec: *id002
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        livenessProbe: *id003
+      volumes:
+      - name: config
+        configMap:
+          name: etl-craft-config
+      - name: state
+        emptyDir: {}
+      - name: tmp
+        emptyDir: {}
+  strategy:
+    type: Recreate
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-warehouse-01
+  labels:
+    pool: warehouse
+spec:
+  replicas: 1
+  selector:
+    matchLabels: &id001
+      app: agent-warehouse-01
+      pool: warehouse
+  template:
+    metadata:
+      labels: *id001
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 310
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: agent
+        image: etl-craft-project:1.0.0rc1
+        args:
+        - agent
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: '2'
+            memory: 256Mi
+        volumeMounts:
+        - name: config
+          mountPath: /state/craft-connector.yml
+          subPath: agent.yml
+          readOnly: true
+        - name: state
+          mountPath: /state
+        - name: tmp
+          mountPath: /tmp
+        env:
+        - name: ETL_CRAFT_CONFIG
+          value: /state/craft-connector.yml
+        - name: ETL_CRAFT_API
+          valueFrom:
+            configMapKeyRef:
+              name: etl-craft-config
+              key: api-url
+        - name: ETL_CRAFT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: etl-craft-agent-warehouse-01
+              key: ETL_CRAFT_TOKEN
+        startupProbe:
+          exec: &id002
+            command:
+            - etl-craft
+            - agent
+            - health
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 12
+        readinessProbe: &id003
+          exec: *id002
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        livenessProbe: *id003
+      volumes:
+      - name: config
+        configMap:
+          name: etl-craft-config
+      - name: state
+        emptyDir: {}
+      - name: tmp
+        emptyDir: {}
+  strategy:
+    type: Recreate
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-warehouse-02
+  labels:
+    pool: warehouse
+spec:
+  replicas: 1
+  selector:
+    matchLabels: &id001
+      app: agent-warehouse-02
+      pool: warehouse
+  template:
+    metadata:
+      labels: *id001
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 310
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: agent
+        image: etl-craft-project:1.0.0rc1
+        args:
+        - agent
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: '2'
+            memory: 256Mi
+        volumeMounts:
+        - name: config
+          mountPath: /state/craft-connector.yml
+          subPath: agent.yml
+          readOnly: true
+        - name: state
+          mountPath: /state
+        - name: tmp
+          mountPath: /tmp
+        env:
+        - name: ETL_CRAFT_CONFIG
+          value: /state/craft-connector.yml
+        - name: ETL_CRAFT_API
+          valueFrom:
+            configMapKeyRef:
+              name: etl-craft-config
+              key: api-url
+        - name: ETL_CRAFT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: etl-craft-agent-warehouse-02
+              key: ETL_CRAFT_TOKEN
+        startupProbe:
+          exec: &id002
+            command:
+            - etl-craft
+            - agent
+            - health
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 12
+        readinessProbe: &id003
+          exec: *id002
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        livenessProbe: *id003
+      volumes:
+      - name: config
+        configMap:
+          name: etl-craft-config
+      - name: state
+        emptyDir: {}
+      - name: tmp
+        emptyDir: {}
+  strategy:
+    type: Recreate
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-warehouse-03
+  labels:
+    pool: warehouse
+spec:
+  replicas: 1
+  selector:
+    matchLabels: &id001
+      app: agent-warehouse-03
+      pool: warehouse
+  template:
+    metadata:
+      labels: *id001
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 310
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: agent
+        image: etl-craft-project:1.0.0rc1
+        args:
+        - agent
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: '2'
+            memory: 256Mi
+        volumeMounts:
+        - name: config
+          mountPath: /state/craft-connector.yml
+          subPath: agent.yml
+          readOnly: true
+        - name: state
+          mountPath: /state
+        - name: tmp
+          mountPath: /tmp
+        env:
+        - name: ETL_CRAFT_CONFIG
+          value: /state/craft-connector.yml
+        - name: ETL_CRAFT_API
+          valueFrom:
+            configMapKeyRef:
+              name: etl-craft-config
+              key: api-url
+        - name: ETL_CRAFT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: etl-craft-agent-warehouse-03
+              key: ETL_CRAFT_TOKEN
+        startupProbe:
+          exec: &id002
+            command:
+            - etl-craft
+            - agent
+            - health
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 12
+        readinessProbe: &id003
+          exec: *id002
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        livenessProbe: *id003
+      volumes:
+      - name: config
+        configMap:
+          name: etl-craft-config
+      - name: state
+        emptyDir: {}
+      - name: tmp
+        emptyDir: {}
+  strategy:
+    type: Recreate
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-warehouse-04
+  labels:
+    pool: warehouse
+spec:
+  replicas: 1
+  selector:
+    matchLabels: &id001
+      app: agent-warehouse-04
+      pool: warehouse
+  template:
+    metadata:
+      labels: *id001
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 310
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: agent
+        image: etl-craft-project:1.0.0rc1
+        args:
+        - agent
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: '2'
+            memory: 256Mi
+        volumeMounts:
+        - name: config
+          mountPath: /state/craft-connector.yml
+          subPath: agent.yml
+          readOnly: true
+        - name: state
+          mountPath: /state
+        - name: tmp
+          mountPath: /tmp
+        env:
+        - name: ETL_CRAFT_CONFIG
+          value: /state/craft-connector.yml
+        - name: ETL_CRAFT_API
+          valueFrom:
+            configMapKeyRef:
+              name: etl-craft-config
+              key: api-url
+        - name: ETL_CRAFT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: etl-craft-agent-warehouse-04
+              key: ETL_CRAFT_TOKEN
+        startupProbe:
+          exec: &id002
+            command:
+            - etl-craft
+            - agent
+            - health
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 12
+        readinessProbe: &id003
+          exec: *id002
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        livenessProbe: *id003
+      volumes:
+      - name: config
+        configMap:
+          name: etl-craft-config
+      - name: state
+        emptyDir: {}
+      - name: tmp
+        emptyDir: {}
+  strategy:
+    type: Recreate
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-warehouse-05
+  labels:
+    pool: warehouse
+spec:
+  replicas: 1
+  selector:
+    matchLabels: &id001
+      app: agent-warehouse-05
+      pool: warehouse
+  template:
+    metadata:
+      labels: *id001
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 310
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: agent
+        image: etl-craft-project:1.0.0rc1
+        args:
+        - agent
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: '2'
+            memory: 256Mi
+        volumeMounts:
+        - name: config
+          mountPath: /state/craft-connector.yml
+          subPath: agent.yml
+          readOnly: true
+        - name: state
+          mountPath: /state
+        - name: tmp
+          mountPath: /tmp
+        env:
+        - name: ETL_CRAFT_CONFIG
+          value: /state/craft-connector.yml
+        - name: ETL_CRAFT_API
+          valueFrom:
+            configMapKeyRef:
+              name: etl-craft-config
+              key: api-url
+        - name: ETL_CRAFT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: etl-craft-agent-warehouse-05
+              key: ETL_CRAFT_TOKEN
+        startupProbe:
+          exec: &id002
+            command:
+            - etl-craft
+            - agent
+            - health
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 12
+        readinessProbe: &id003
+          exec: *id002
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        livenessProbe: *id003
+      volumes:
+      - name: config
+        configMap:
+          name: etl-craft-config
+      - name: state
+        emptyDir: {}
+      - name: tmp
+        emptyDir: {}
+  strategy:
+    type: Recreate
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-warehouse-06
+  labels:
+    pool: warehouse
+spec:
+  replicas: 1
+  selector:
+    matchLabels: &id001
+      app: agent-warehouse-06
+      pool: warehouse
+  template:
+    metadata:
+      labels: *id001
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 310
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: agent
+        image: etl-craft-project:1.0.0rc1
+        args:
+        - agent
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: '2'
+            memory: 256Mi
+        volumeMounts:
+        - name: config
+          mountPath: /state/craft-connector.yml
+          subPath: agent.yml
+          readOnly: true
+        - name: state
+          mountPath: /state
+        - name: tmp
+          mountPath: /tmp
+        env:
+        - name: ETL_CRAFT_CONFIG
+          value: /state/craft-connector.yml
+        - name: ETL_CRAFT_API
+          valueFrom:
+            configMapKeyRef:
+              name: etl-craft-config
+              key: api-url
+        - name: ETL_CRAFT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: etl-craft-agent-warehouse-06
+              key: ETL_CRAFT_TOKEN
+        startupProbe:
+          exec: &id002
+            command:
+            - etl-craft
+            - agent
+            - health
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 12
+        readinessProbe: &id003
+          exec: *id002
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        livenessProbe: *id003
+      volumes:
+      - name: config
+        configMap:
+          name: etl-craft-config
+      - name: state
+        emptyDir: {}
+      - name: tmp
+        emptyDir: {}
+  strategy:
+    type: Recreate
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-warehouse-07
+  labels:
+    pool: warehouse
+spec:
+  replicas: 1
+  selector:
+    matchLabels: &id001
+      app: agent-warehouse-07
+      pool: warehouse
+  template:
+    metadata:
+      labels: *id001
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 310
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: agent
+        image: etl-craft-project:1.0.0rc1
+        args:
+        - agent
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: '2'
+            memory: 256Mi
+        volumeMounts:
+        - name: config
+          mountPath: /state/craft-connector.yml
+          subPath: agent.yml
+          readOnly: true
+        - name: state
+          mountPath: /state
+        - name: tmp
+          mountPath: /tmp
+        env:
+        - name: ETL_CRAFT_CONFIG
+          value: /state/craft-connector.yml
+        - name: ETL_CRAFT_API
+          valueFrom:
+            configMapKeyRef:
+              name: etl-craft-config
+              key: api-url
+        - name: ETL_CRAFT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: etl-craft-agent-warehouse-07
+              key: ETL_CRAFT_TOKEN
+        startupProbe:
+          exec: &id002
+            command:
+            - etl-craft
+            - agent
+            - health
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 12
+        readinessProbe: &id003
+          exec: *id002
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        livenessProbe: *id003
+      volumes:
+      - name: config
+        configMap:
+          name: etl-craft-config
+      - name: state
+        emptyDir: {}
+      - name: tmp
+        emptyDir: {}
+  strategy:
+    type: Recreate
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-warehouse-08
+  labels:
+    pool: warehouse
+spec:
+  replicas: 1
+  selector:
+    matchLabels: &id001
+      app: agent-warehouse-08
+      pool: warehouse
+  template:
+    metadata:
+      labels: *id001
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 310
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: agent
+        image: etl-craft-project:1.0.0rc1
+        args:
+        - agent
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: '2'
+            memory: 256Mi
+        volumeMounts:
+        - name: config
+          mountPath: /state/craft-connector.yml
+          subPath: agent.yml
+          readOnly: true
+        - name: state
+          mountPath: /state
+        - name: tmp
+          mountPath: /tmp
+        env:
+        - name: ETL_CRAFT_CONFIG
+          value: /state/craft-connector.yml
+        - name: ETL_CRAFT_API
+          valueFrom:
+            configMapKeyRef:
+              name: etl-craft-config
+              key: api-url
+        - name: ETL_CRAFT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: etl-craft-agent-warehouse-08
+              key: ETL_CRAFT_TOKEN
+        startupProbe:
+          exec: &id002
+            command:
+            - etl-craft
+            - agent
+            - health
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 12
+        readinessProbe: &id003
+          exec: *id002
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        livenessProbe: *id003
+      volumes:
+      - name: config
+        configMap:
+          name: etl-craft-config
+      - name: state
+        emptyDir: {}
+      - name: tmp
+        emptyDir: {}
+  strategy:
+    type: Recreate
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-warehouse-09
+  labels:
+    pool: warehouse
+spec:
+  replicas: 1
+  selector:
+    matchLabels: &id001
+      app: agent-warehouse-09
+      pool: warehouse
+  template:
+    metadata:
+      labels: *id001
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 310
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: agent
+        image: etl-craft-project:1.0.0rc1
+        args:
+        - agent
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: '2'
+            memory: 256Mi
+        volumeMounts:
+        - name: config
+          mountPath: /state/craft-connector.yml
+          subPath: agent.yml
+          readOnly: true
+        - name: state
+          mountPath: /state
+        - name: tmp
+          mountPath: /tmp
+        env:
+        - name: ETL_CRAFT_CONFIG
+          value: /state/craft-connector.yml
+        - name: ETL_CRAFT_API
+          valueFrom:
+            configMapKeyRef:
+              name: etl-craft-config
+              key: api-url
+        - name: ETL_CRAFT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: etl-craft-agent-warehouse-09
+              key: ETL_CRAFT_TOKEN
+        startupProbe:
+          exec: &id002
+            command:
+            - etl-craft
+            - agent
+            - health
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 12
+        readinessProbe: &id003
+          exec: *id002
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        livenessProbe: *id003
+      volumes:
+      - name: config
+        configMap:
+          name: etl-craft-config
+      - name: state
+        emptyDir: {}
+      - name: tmp
+        emptyDir: {}
+  strategy:
+    type: Recreate
