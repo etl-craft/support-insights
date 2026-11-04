@@ -1,11 +1,17 @@
 # Support Insights
 
 A local Trino/Iceberg data-movement example for [etl-craft](https://github.com/etl-craft/etl-craft).
-S8.A supplies the project layout, source generators and Kubernetes stack. Pipeline conversion
-is S8.B; workflows and the runner are S8.E; deterministic mixed-quality scenarios are S8.H.
-The former package demo scripts and migrations are preserved in `reference/package-demo/`,
-outside the active project, so setup cannot apply them automatically. Source batches do not
-run ETL pipelines yet.
+The project defines the S8.B pipelines for MongoDB, Kafka and MinIO ingestion, reference
+history and normalized ODS. SI_DM, stewardship and maintenance follow in later S8.B slices.
+Execution order,
+schedules and actions live in `project/config/`; managed SQL remains read-only SELECTs.
+Workflows and the runner remain S8.E; full acceptance checks and the mixed-quality matrix
+remain S8.F/H.
+
+Only business-rule **REJECT** flags exclude rows from ODS. INCOMPLETE and REPORT rows remain
+eligible. Each generator accepts `--rejectable` to produce bounded, parseable negative-duration
+batches that reach business-rule evaluation. See [the project guide](project/README.md) for
+source mappings, original reference seeds and independent row comparisons.
 
 ## Layout
 
@@ -26,7 +32,11 @@ for package roles; the generator tag is imported into the node. The engine has t
 one required synchronous standby, and a transaction-mode PgBouncer Pooler for the two UI copies.
 The controller and notification listeners connect directly to `engine-rw`.
 
-Pinned package commit: `dd25ca4a4da713d58e0611d771c8b4d2e9a1aacc` ([#319](https://github.com/etl-craft/etl-craft/pull/319), [#320](https://github.com/etl-craft/etl-craft/pull/320), [#321](https://github.com/etl-craft/etl-craft/pull/321)).
+Pinned package commit: `4a2fda2a6a83790b373856f63410266504302ebf`, including
+[#322](https://github.com/etl-craft/etl-craft/pull/322),
+[#323](https://github.com/etl-craft/etl-craft/pull/323),
+[#324](https://github.com/etl-craft/etl-craft/pull/324) and
+[#325](https://github.com/etl-craft/etl-craft/pull/325).
 The measured memory/disk figures are recorded below.
 Images are built locally with that commit's S7.F Dockerfiles and imported with `k3d image import`.
 Nothing is pushed to a registry. S8.E will switch to gated candidate images and wheel evidence.
@@ -78,21 +88,68 @@ kubectl apply -k infra/kubernetes
 for deployment in $(kubectl get deployment -o name); do
   kubectl rollout status "$deployment" --timeout=300s
 done
-kubectl exec craft-admin -- etl-craft logout
-kubectl delete pod craft-admin
+# Keep craft-admin until the project bootstrap below finishes.
 ```
 
 The controller is headless with a 1 GiB limit. Its S7.F Recreate strategy stops the old
 controller before starting the replacement; two active controllers are refused. Three ingestion agents expose one Python slot
 and nine warehouse agents expose one warehouse slot, each with a 256 MiB limit. The package's
 explicit Python slot override preserves CPU, total-slot and measured process-floor guards;
-S8.B must give the ingestion tasks measured `MEMORY_REQUEST_MB` values fitting those agents.
+The ingestion tasks declare `MEMORY_REQUEST_MB` within those agents’ capacity.
 
 Open [the UI](https://craft.localhost:8443), [generators](http://generator.localhost:8080)
 and [Mailpit](http://mail.localhost:8080). The local TLS certificate is in `.state/tls.crt`;
 trust it explicitly for this demo. Agents trust it through a ConfigMap and use the TLS ingress.
 All host ports bind to loopback. Credentials in service manifests are local demo credentials.
 Production separates the warehouse from the Engine DB and supplies managed credentials/TLS.
+
+## Bootstrap the project
+
+Keep schedules disabled while installing a fresh project. Apply config without physical
+landing column declarations, publish the project, then run SI_SETUP. Its tasks create all
+managed targets; warehouse schemas come from `infra/bootstrap/warehouse.sql`.
+
+```sh
+cp -R project/config .state/bootstrap-config
+rm .state/bootstrap-config/columns.csv
+kubectl cp .state/bootstrap-config craft-admin:/tmp/bootstrap-config
+kubectl exec craft-admin -- etl-craft config apply --config-dir /tmp/bootstrap-config
+kubectl exec craft-admin -- etl-craft bundle publish --project-dir /project
+etl-craft --api https://craft.localhost:8443 --project support_insights run \
+  --pipeline-code SI_SETUP --init-only --run-key bootstrap-setup
+```
+
+Wait for that exact run to end SUCCESS using `status --pipeline-code SI_SETUP --run-id ID`.
+Then apply the seeds and full landing contracts and start reference history:
+
+```sh
+kubectl exec craft-admin -- etl-craft seed apply
+kubectl cp project/config craft-admin:/tmp/full-config
+kubectl exec craft-admin -- etl-craft config apply --config-dir /tmp/full-config
+kubectl exec craft-admin -- etl-craft bundle publish --project-dir /project
+etl-craft --api https://craft.localhost:8443 --project support_insights run \
+  --pipeline-code SI_REFERENCE --init-only --run-key bootstrap-reference
+# Wait for this exact SI_REFERENCE run to end SUCCESS before enabling schedules.
+sed -i 's/Allow_schedule: false/Allow_schedule: true/' .state/engine.yml .state/ui.yml
+kubectl create configmap etl-craft-config --from-file=engine.yml=.state/engine.yml \
+  --from-file=ui.yml=.state/ui.yml --from-file=agent.yml=.state/agent.yml \
+  --from-literal=api-url=https://traefik.kube-system.svc --dry-run=client -o yaml | kubectl apply -f -
+kubectl rollout restart deployment/etl-craft-controller deployment/etl-craft-ui
+kubectl exec craft-admin -- etl-craft logout
+kubectl delete pod craft-admin
+```
+
+Use the enrolled host token and demo TLS CA for host API commands:
+
+```sh
+export ETL_CRAFT_TOKEN="$(cat .state/host-token)"
+export SSL_CERT_FILE="$(pwd)/.state/tls.crt"
+```
+
+ Source credentials live
+in the FILE provider mounted on controller/API pods only. The controller/API host configuration resides on the project PVC, so uploads and processed
+uploads share one mount across both UI copies and the controller. The project guide covers
+maintenance holds and source policies; the deployment workflow remains S8.E.
 
 ## Source bounds and batches
 
@@ -108,11 +165,15 @@ kubectl exec deploy/generator -- python generators/client_beta_data_generator.py
 kubectl exec deploy/generator -- python generators/client_gamma_data_generator.py 1000
 ```
 
-MongoDB has a two-day TTL on generated documents. Kafka is KRaft with four topic partitions,
+Kafka mounts its PVC directly at `/var/lib/kafka/data` (the image declares a volume there)
+and keeps broker logs in its `broker/` subdirectory. It uses Recreate so two broker instances never share it. A replacement-pod check preserves
+the topic identity and end offsets.
+
+MongoDB has a two-day TTL on generated documents. Kafka is KRaft with four topic partitions and automatic topic creation disabled,
 one-day retention and `retention.bytes=268435456` per partition. Gamma objects expire after
 two days. Project attempt logs retain two days through the existing retention configuration.
-Trino's snapshot and orphan minimum retention is one day; nightly table maintenance belongs
-in S8.B. Budget 50 GB of disk for the local installation and watch actual usage below.
+Trino's snapshot and orphan minimum retention is one day. The stewardship and maintenance
+slice will add the nightly table operations. Budget 50 GB of disk for the local installation and watch actual usage below.
 
 Gamma's `.csv.gz` object-created notification reaches the existing generator HTTP process.
 Trino is internal-only and trusts cluster usernames. File ACLs restrict the webhook's
@@ -123,11 +184,11 @@ SQLite receipts suppress ordinary replays. A crash after Trino commits but befor
 commits may repeat a physical row; physical uniqueness is deliberately not required.
 [The event query](infra/bootstrap/gamma-events.sql) groups each version to one result row.
 An injected duplicate was checked locally: two physical rows grouped to one delivery.
-S8.B must use `EVENT_KEY_COLUMN=event_key` and read the object key from `task.event_rows`.
+Gamma uses `EVENT_KEY_COLUMN=event_key` and reads the object key from `task.event_rows`.
 
-S8.F acceptance check `gamma_duplicate_notification`: insert a second notification row for
-the same object key/ETag, run Gamma, and assert that object loads once and exactly one key is
-recorded in `AUD_EVENT_KEYS` for the event task. Test a new ETag as a separate delivery too.
+After inserting a duplicate notification for the same object key/ETag and running Gamma,
+the live `tests/test_gamma_duplicate_signal.py` check asserts that the object loads once and one key is
+recorded in `AUD_EVENT_KEYS` for the event task. S8.F/H extend this to a new ETag and the full acceptance matrix.
 Package probes already confirm identical rows deduplicate to one recorded key without GROUP BY;
 conflicting payloads fail naming the key, expected single payload and remedy.
 
@@ -143,8 +204,54 @@ docker run --rm --user "$(id -u):$(id -g)" --entrypoint python \
   -v "$HOME/.cache/etl-craft/tests/tmp-codex:$HOME/.cache/etl-craft/tests/tmp-codex" \
   -v "$HOME/.cache/etl-craft/tests/tmp-codex/generator-logs:/app/logs" \
   -v "$(pwd)/tests:/app/tests:ro" \
-  support-insights-generator:s8a -m unittest discover -s tests
+  -v "$(pwd)/project:/app/project:ro" \
+  -v "$(pwd)/reference:/app/reference:ro" \
+  support-insights-generator:4a2fda2a6a83790b373856f63410266504302ebf -m unittest discover -s tests
 ```
+
+For the small live row checks, use unused fixture keys (this validation uses 9000–9002, beyond its random batches). Deliver once after random batch checks, then run each client with
+an explicit run key and wait for that exact run to end SUCCESS. Replaying unchanged inputs
+keeps PRS history unchanged, so the PRE_ODS check belongs to the delivery that first changes
+those rows.
+
+```sh
+python3 - <<'PYTHON'
+import csv, json
+from pathlib import Path
+inputs = json.loads(Path("tests/fixtures/generator-records.json").read_text())
+inputs["setup_tables"] = [
+    row["TARGET_SCHEMA_NAME"] + "." + row["TARGET_TABLE_NAME"]
+    for row in csv.DictReader(open("project/config/tasks.csv"))
+    if row["PIPELINE_CODE"] == "SI_SETUP"
+]
+Path(".state/prepared-inputs.json").write_text(json.dumps(inputs))
+PYTHON
+kubectl exec -i deploy/generator -- sh -c 'cat > /tmp/source_fixture.py' < tests/source_fixture.py
+kubectl exec -i deploy/generator -- python /tmp/source_fixture.py \
+  < .state/prepared-inputs.json > .state/oracle-inputs.json
+# Run SI_CLIENT_ALPHA, SI_CLIENT_BETA and SI_CLIENT_GAMMA through the API.
+# Wait for their exact run IDs before checking their targets.
+kubectl port-forward service/trino 18080:8080 --address 127.0.0.1
+```
+
+In another terminal, the generator image can run the five live oracles with host networking:
+
+```sh
+docker run --rm --network host --entrypoint python \
+  -e SI_TRINO_HOST=127.0.0.1 -e SI_TRINO_PORT=18080 \
+  -e SI_ORACLE_INPUTS=/app/oracle-inputs.json \
+  -v "$(pwd)/.state/oracle-inputs.json:/app/oracle-inputs.json:ro" \
+  -v "$(pwd)/tests:/app/tests:ro" -v "$(pwd)/project:/app/project:ro" \
+  support-insights-generator:4a2fda2a6a83790b373856f63410266504302ebf \
+  -m unittest discover -s tests -p test_pipeline_rows.py
+```
+
+For the duplicate-signal check, copy the delivered object's notification into a second
+physical row using the INSERT-only `gamma_signal` principal before starting Gamma. Record
+its exact `event_key` and `business_key` (9000) in a JSON file named by
+`SI_DUPLICATE_EVENT`; run `tests/test_gamma_duplicate_signal.py` on the host with Trino's
+client installed and kubectl access. This also checks the consumed key in the Engine DB.
+Stop the temporary port-forward after checking. Full acceptance orchestration remains S8.F.
 
 Every manifest is validated against the live API using `kubectl apply --dry-run=server`.
 The retained generator status API now emits ISO timestamps after a run instead of failing
@@ -168,61 +275,63 @@ k3d cluster start support-insights
 ```
 
 `memory.swap.max` must be greater than zero. Measurements include `kubectl top pods -A`,
-`free -h`, `/proc/swaps`, host free disk and node storage/image disk use. They are source-only
-S8.A batch measurements; ETL workload and Beta task-process memory acceptance remain S8.F.
+`free -h`, `/proc/swaps`, host free disk and node storage/image disk use. The S8.B observations below include ETL workload and the Beta task process.
 
 
 ## Measured on this workstation
 
-On 2026-11-04, all 33 running pods were ready on the pinned commit above. Each snapshot
-waited for a fresh metrics-server sample for every pod. The batch ran 1,000 inputs per
-client sequentially, producing 1,250 rows/events per client (including updates). These are
-point-in-time working sets from `kubectl top pods -A`, not peak memory or ETL acceptance.
+Measured on 2026-11-05 IST (2026-11-04 UTC), using package commit
+`4a2fda2a6a83790b373856f63410266504302ebf`. Beta generated 1,000 inputs plus 250 updates;
+run 43, ingestion attempt 381 loaded all 1,250 rows. All four partition items succeeded with
+`max_parallel=2`, within the 256 MiB agent/task container. Its cgroup recorded:
 
-| Component | Idle MiB | After batch MiB |
+| Beta ingestion observation | Measured value |
+|---|---:|
+| Memory peak | 200,548,352 bytes (191.3 MiB) |
+| Memory current after ingestion | 18,288,640 bytes (17.4 MiB) |
+| Container memory limit | 268,435,456 bytes (256 MiB) |
+| Swap current after ingestion | 63,168,512 bytes (60.2 MiB) |
+| `memory.swap.max` | 277,827,584 bytes |
+| OOM / OOM-kill events | 0 / 0 |
+
+The measured pod was `agent-ingestion-02-594bb4447f-gvwkx`, UID
+`c3e1d835-ec22-420f-b639-241150c40ec5`, running the pinned ingestion image. The peak covers
+its lifetime, including previous attempts and parent SDK imports. These are actual container
+measurements including agent and child, not task reservation estimates. Provider files and
+source-password environment variables are absent from the agent container; declared credentials reach its admitted
+child through the task-secret pipe.
+
+The idle snapshot follows the Beta run and removal of the admin pod. The post-batch snapshot
+follows the three small client deliveries (runs 44–46). Both contain 33 pods and include all
+three PostgreSQL instances, two UI copies and twelve agents:
+
+| Observation | Idle | After client batches |
 |---|---:|---:|
-| Kubernetes + CNPG operator (6) | 158 | 156 |
-| Agents (12) | 986 | 868 |
-| PostgreSQL (3) | 339 | 300 |
-| PgBouncer (1) | 15 | 15 |
-| Controller (1) | 72 | 72 |
-| UI (2) | 198 | 203 |
-| Generator (1) | 6 | 14 |
-| Iceberg REST (1) | 69 | 125 |
-| Kafka (1) | 160 | 168 |
-| Mailpit (1) | 7 | 7 |
-| Gamma MinIO (1) | 64 | 65 |
-| Lake MinIO (1) | 62 | 76 |
-| MongoDB (1) | 44 | 45 |
-| Trino (1) | 191 | 588 |
-| **All 33 pods** | **2371 (2.32 GiB)** | **2702 (2.64 GiB)** |
+| `kubectl top pods -A`, summed working sets | 4,093 MiB | 4,917 MiB |
+| Host `free -h`, RAM used | 10 GiB | 11 GiB |
+| Host RAM available | 4.6 GiB | 3.7 GiB |
+| Host `free -h`, swap used | 9 GiB | 9.2 GiB |
+| NVMe swapfile used (`/proc/swaps`) | 0 | 0 |
+| Node persistent storage (`du -sh`) | 2.1G | 2.1G |
+| Node containerd storage (`du -sh`) | 11G | 11G |
+| Host filesystem used / available (`df -h`) | 182G / 280G | 183G / 280G |
 
-| Host / disk observation | Idle | After batch |
-|---|---:|---:|
-| Host RAM used (`free -h`) | 8.9 GiB | 9.3 GiB |
-| Host RAM available | 6.0 GiB | 5.7 GiB |
-| Host swap used (30 GiB total) | 5.6 GiB | 5.2 GiB |
-| NVMe swapfile used | 0 | 0 |
-| Node persistent storage | 1.3 GiB | 1.3 GiB |
-| Node containerd image/storage directory | 8.7 GiB | 8.7 GiB |
-| Host filesystem used / available | 176 / 286 GiB | 176 / 286 GiB |
-| Generator `memory.swap.max` | 138,911,744 bytes | 138,911,744 bytes |
+The active swap is zram; `memory.swap.max` was also positive in the generator in both
+snapshots. Pod working sets exclude swapped pages and are included in host RAM. Disk values
+retain the tools' human-readable units. A disk scan raced with containerd cleanup and was
+retried successfully; the table uses the completed snapshots.
 
-Host totals include the workstation's other applications and caches; pod working sets are
-already part of host RAM. Swap was in zram in both snapshots. Pod working sets exclude
-swapped pages, so their 2.32/2.64 GiB totals do not describe the stack's whole memory footprint.
-Node disk figures include the locally imported validation images. The 50 GB disk budget
-remains the installation budget; retention and actual disk usage still need monitoring.
+Validation: 14 local tests passed (six live checks skipped in that invocation); the separate
+five live pipeline oracles passed in 2.850 seconds and the Gamma duplicate check in 0.457
+seconds. Every candidate, including negative durations, reached PRE_ODS; only REJECT keys
+were excluded from ODS. The missing-agent INCOMPLETE records reached ODS. Setup run 34
+succeeded on 19 targets and reference run 35 on ten tasks. Original DS seed equality is
+checked independently against the legacy inserts; prior uploaded DS seeds stayed locked,
+and both replaceable seeds reported UNCHANGED on reapplication.
 
-Local validation passed: server dry-run for the stack, system limits, admin pod and pinned
-CNPG install; all rollouts; twelve active one-slot agents in the 3/9 pools; two ready UI
-endpoints; TLS ingress and generator/Mailpit routes; headless controller health/root behavior;
-required synchronous replication and transaction pooling; and eight generator tests (0.118s,
-with the configured disk TMPDIR asserted). Gamma's real notification matched the object
-key, ETag and size. Its principal refused SELECT, DELETE and table optimization. An injected
-physical duplicate grouped to one version. The Engine DB pipeline list is empty.
-
-Before these final batches, validation had already emitted one 100-input Gamma smoke batch
-and one 1,000-input batch per client. The final measurements therefore cover an incremental
-source batch on persisted state, not empty source services. Full pipeline correctness,
-load-once audit assertions and peak ingestion memory remain S8.B/S8.F.
+Kafka replacement preserved the topic ID and all four end offsets (307, 150, 262, 531).
+An earlier parent-directory PVC mount was masked by the image's child volume, causing topic
+loss and a correctly refused stale offset. The corrected mount persists its `broker/` logs;
+local fixture replay used the audited `mark --offset` operation with a reason. No raw audit
+edits or watermark bypass were used. Attempt 89 was separately reconciled through merged
+package #325, recording PROCESS=ATTESTED and QUERIES=VERIFIED.

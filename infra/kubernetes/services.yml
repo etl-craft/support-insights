@@ -248,6 +248,8 @@ spec:
         ports:
         - containerPort: 9092
         env:
+        - name: KAFKA_AUTO_CREATE_TOPICS_ENABLE
+          value: 'false'
         - name: KAFKA_NODE_ID
           value: '1'
         - name: KAFKA_PROCESS_ROLES
@@ -275,14 +277,14 @@ spec:
         - name: KAFKA_LOG_SEGMENT_BYTES
           value: '16777216'
         - name: KAFKA_LOG_DIRS
-          value: /var/lib/kafka/data
+          value: /var/lib/kafka/data/broker
         - name: KAFKA_HEAP_OPTS
           value: -Xms128m -Xmx256m
         - name: CLUSTER_ID
           value: MkU3OEVBNTcwNTJENDM2Qk
         volumeMounts:
         - name: data
-          mountPath: /var/lib/kafka
+          mountPath: /var/lib/kafka/data
       volumes:
       - name: data
         persistentVolumeClaim:
@@ -345,7 +347,9 @@ spec:
         - name: CATALOG_WAREHOUSE
           value: s3://warehouse/
         - name: CATALOG_URI
-          value: jdbc:sqlite:/data/catalog.db
+          value: jdbc:sqlite:/data/catalog.db?journal_mode=WAL&busy_timeout=30000&transaction_mode=IMMEDIATE
+        - name: CATALOG_CLIENTS
+          value: '1'
         - name: CATALOG_JDBC_USER
           value: user
         - name: CATALOG_JDBC_PASSWORD
@@ -628,7 +632,7 @@ spec:
     spec:
       containers:
       - name: generator
-        image: support-insights-generator:s8a
+        image: support-insights-generator:4a2fda2a6a83790b373856f63410266504302ebf
         resources:
           requests:
             cpu: 20m

@@ -1,5 +1,9 @@
 COLUMN_NAME|DATA_TYPE|KEY_FLAG
-agent_code|VARCHAR(100)|Y
-agent_name|VARCHAR(100)|N
-team|VARCHAR(100)|N
-email|VARCHAR(100)|N
+agent_id|BIGINT|Y
+first_name|VARCHAR|N
+middle_name|VARCHAR|N
+last_name|VARCHAR|N
+pseudo_code|VARCHAR|N
+source_id|BIGINT|N
+is_active|BOOLEAN|N
+upload_id|BIGINT|N

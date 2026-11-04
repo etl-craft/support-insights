@@ -1,4 +1,7 @@
 COLUMN_NAME|DATA_TYPE|KEY_FLAG
-source_id|INTEGER|Y
-source_code|VARCHAR(100)|N
-source_name|VARCHAR(100)|N
+source_id|BIGINT|Y
+source_name|VARCHAR|N
+source_file_type|VARCHAR|N
+data_nature|VARCHAR|N
+description|VARCHAR|N
+is_active|BOOLEAN|N

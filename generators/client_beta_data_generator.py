@@ -37,6 +37,8 @@ from db_operations import (
 
 # ========================== Config & Logging =========================== #
 
+REJECTABLE = False
+
 DEFAULT_CHUNK_SIZE = 1000
 SCRIPT_NAME = "client_beta_data_generator"
 
@@ -175,6 +177,10 @@ def generate_random_record(
     ET.SubElement(record, "SUPPORT_RATING").text = str(random.randint(1, 5))
     ET.SubElement(record, "TIME_STAMP").text = time_stamp
 
+    if REJECTABLE:
+        duration = record.find("CONTACT_DURATION")
+        assert duration is not None
+        duration.text = "-1:00:00"
     return record
 
 
@@ -265,7 +271,7 @@ def generate_and_update_records(
                                                 customer_types)
 
                 # Randomly nullify a field
-                if random.random() < 0.1:
+                if not REJECTABLE and random.random() < 0.1:
                     key_to_nullify = random.choice([
                         "CONTACT_REGARDING",
                         "AGENT_CODE",
@@ -383,6 +389,7 @@ def generate_and_update_records(
 
 
 def _parse_args() -> int:
+    global REJECTABLE
     parser = argparse.ArgumentParser(
         description="Generate and send records to Kafka.")
     parser.add_argument(
@@ -392,7 +399,10 @@ def _parse_args() -> int:
         type=int,
         help="Number of records to generate (default: random 1..1000)",
     )
+    parser.add_argument("--rejectable", action="store_true",
+                        help="Generate a bounded batch with negative durations rejected by warehouse rules")
     args = parser.parse_args()
+    REJECTABLE = args.rejectable
     return args.input if args.input is not None else random.randint(1, 1000)
 
 

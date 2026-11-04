@@ -40,6 +40,8 @@ from db_operations import (
 
 # ========================== Config & Logging =========================== #
 
+REJECTABLE = False
+
 DEFAULT_CHUNK_SIZE = 1000
 SCRIPT_NAME = "client_gamma_data_generator"
 
@@ -209,6 +211,8 @@ def generate_random_record(
         random.choice(["WORST", "BAD", "NEUTRAL", "GOOD", "BEST"]),
     ]
 
+    if REJECTABLE:
+        record[_HEADERS.index("DURATION")] = "-1"
     return record
 
 
@@ -293,7 +297,7 @@ def generate_and_upload_chunks(
             rec = generate_random_record(record_id, support_categories,
                                          agent_pseudo_names, customer_types)
 
-            if random.random() < 0.1:
+            if not REJECTABLE and random.random() < 0.1:
                 idx_to_nullify = random.randint(1,
                                                 12)  # keep identifier intact
                 rec[idx_to_nullify] = None
@@ -375,6 +379,7 @@ def generate_and_upload_chunks(
 
 
 def _parse_args() -> int:
+    global REJECTABLE
     p = argparse.ArgumentParser(
         description=
         "Generate and upload client_gamma support records per chunk.")
@@ -385,7 +390,10 @@ def _parse_args() -> int:
         type=int,
         help="Number of records (default: random 1..10000)",
     )
+    p.add_argument("--rejectable", action="store_true",
+                   help="Generate negative durations for warehouse reject rules")
     a = p.parse_args()
+    REJECTABLE = a.rejectable
     return a.input if a.input is not None else random.randint(1, 10_000)
 
 

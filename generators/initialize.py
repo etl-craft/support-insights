@@ -16,22 +16,28 @@ def initialize():
             max_serial_number INTEGER, max_record_id INTEGER, change_timestamp TEXT);
         """)
         for table, column, source_column in [
-            ("agents", "pseudo_code", "agent_code"),
-            ("support_areas", "support_area_name", "area_name"),
+            ("agents", "pseudo_code", "pseudo_code"),
+            ("support_areas", "support_area_name", "support_area_name"),
             ("customer_types", "customer_type_name", "customer_type_name"),
         ]:
             conn.execute(
                 f"CREATE TABLE IF NOT EXISTS {table}(source_id INTEGER, {column} TEXT, is_active INTEGER)"
             )
-            if conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]:
-                continue
             path = Path("/app/project/seeds/warehouse/ds") / table / "data.csv"
-            rows = list(csv.DictReader(path.open(), delimiter="|"))
-            for source in range(1, 4):
-                conn.executemany(
-                    f"INSERT INTO {table} VALUES (?, ?, 1)",
-                    [(source, row[source_column]) for row in rows],
-                )
+            with path.open() as stream:
+                rows = list(csv.DictReader(stream, delimiter="|"))
+            conn.execute(f"DELETE FROM {table}")
+            conn.executemany(
+                f"INSERT INTO {table} VALUES (?, ?, ?)",
+                [
+                    (
+                        int(row["source_id"]),
+                        row[source_column],
+                        int(row["is_active"].lower() == "true"),
+                    )
+                    for row in rows
+                ],
+            )
         conn.executemany(
             "INSERT OR IGNORE INTO sources VALUES (?, ?, 1)",
             enumerate(["CLIENT_ALPHA", "CLIENT_BETA", "CLIENT_GAMMA"], 1),
