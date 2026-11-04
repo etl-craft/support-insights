@@ -43,11 +43,22 @@ class GammaDuplicateSignal(unittest.TestCase):
             "WHERE j.project_code='support_insights' AND t.task_code='gamma_wait_objects' "
             f"AND e.event_key='{key}'"
         )
+        primary = subprocess.check_output(
+            [
+                "kubectl",
+                "get",
+                "cluster",
+                "engine",
+                "-o",
+                "jsonpath={.status.currentPrimary}",
+            ],
+            text=True,
+        ).strip()
         result = subprocess.check_output(
             [
                 "kubectl",
                 "exec",
-                "engine-1",
+                primary,
                 "--",
                 "psql",
                 "-U",

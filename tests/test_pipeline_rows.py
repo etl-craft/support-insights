@@ -6,7 +6,7 @@ import os
 import unittest
 from pathlib import Path
 
-from pipeline_oracle import expected
+from pipeline_oracle import eligible, expected
 
 ROOT = Path(__file__).parents[1]
 
@@ -51,21 +51,77 @@ class PipelineRows(unittest.TestCase):
             return [dict(zip(columns, row, strict=True)) for row in cursor]
 
     def client(self, name):
-        wanted = [expected(name, row) for row in self.inputs[name]]
-        actual = self.rows("ods.interactions", list(wanted[0]))
+        candidates = [expected(name, row) for row in self.inputs[name]]
+        wanted = [row for row in candidates if eligible(row)]
+        stage = self.rows("pre_ods.customer_support_stage", list(candidates[0]))
+        keys = {(r["source_id"], r["source_system_identifier"]) for r in candidates}
+        stage = [
+            row
+            for row in stage
+            if (row["source_id"], row["source_system_identifier"]) in keys
+        ]
+        for row in stage:
+            row["interaction_date"] = (
+                None
+                if row["interaction_date"] is None
+                else row["interaction_date"].isoformat(sep=" ")
+            )
+        self.assertEqual(sorted(stage, key=str), sorted(candidates, key=str))
+        actual = self.rows("ods.interactions", list(candidates[0]))
         for row in actual:
             row["interaction_date"] = (
                 None
                 if row["interaction_date"] is None
                 else row["interaction_date"].isoformat(sep=" ")
             )
-        keys = {(r["source_id"], r["source_system_identifier"]) for r in wanted}
         actual = [
             r for r in actual if (r["source_id"], r["source_system_identifier"]) in keys
         ]
         self.assertEqual(
             sorted(actual, key=lambda r: str(r)), sorted(wanted, key=lambda r: str(r))
         )
+
+        self.dimensions(wanted)
+
+    def dimensions(self, wanted):
+        for table, key in (
+            ("agents", "agent_id"),
+            ("customer_types", "customer_type_id"),
+            ("support_areas", "support_area_id"),
+        ):
+            keys = {row[key] for row in wanted if row[key] is not None}
+            with (
+                ROOT / "project/seeds/warehouse/ds" / table / "data.csv"
+            ).open() as stream:
+                expected_rows = [
+                    row
+                    for row in csv.DictReader(stream, delimiter="|")
+                    if int(row[key]) in keys
+                ]
+            if not expected_rows:
+                continue
+            actual = [
+                row
+                for row in self.rows("ods." + table, list(expected_rows[0]))
+                if row[key] in keys
+            ]
+            self.assertEqual(
+                sorted(self.normalized(actual), key=str), sorted(expected_rows, key=str)
+            )
+
+    @staticmethod
+    def normalized(rows):
+        return [
+            {
+                key: ""
+                if value is None
+                else str(value).lower()
+                if isinstance(value, bool)
+                else str(value)
+                for key, value in row.items()
+            }
+            for row in rows
+        ]
 
     def test_alpha(self):
         self.client("alpha")
@@ -104,11 +160,5 @@ class PipelineRows(unittest.TestCase):
 
     def test_setup(self):
         for table in self.inputs["setup_tables"]:
-            self.rows(table, ["row_id"])
-
-
-
-
-
-
-
+            # APPEND landing tables intentionally have no reserved audit columns.
+            self.rows(table, ["count(*) AS row_count"])

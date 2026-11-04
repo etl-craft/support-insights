@@ -14,7 +14,9 @@ if [ -s .state/host-token ]; then
   printf 'ETL_CRAFT_TOKEN=%s\n' "$(cat .state/host-token)" >> .state/engine.env
 fi
 kubectl create secret generic etl-craft-engine --from-env-file=.state/engine.env --dry-run=client -o yaml | kubectl apply -f -
-sed 's/Source_type: ENVIRONMENT/Source_type: FILE\n  Path: \/secrets\/provider.env/' project/craft-connector.yml > .state/engine.yml
+sed 's/Source_type: ENVIRONMENT/Source_type: FILE\n  Path: \/secrets\/provider.env/' project/craft-connector.yml |
+  sed '/^Orchestration:$/a\
+  Allow_schedule: false' > .state/engine.yml
 # UI uses transaction pooling for ordinary work; LISTEN stays on the direct service.
 sed 's/Jdbc_url: ENGINE_JDBC_URL/Jdbc_url: jdbc:postgresql:\/\/engine-ui:5432\/etl_craft/' .state/engine.yml > .state/ui.yml
 cat > .state/agent.yml <<'EOF'

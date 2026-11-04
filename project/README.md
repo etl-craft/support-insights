@@ -21,7 +21,10 @@ changes follow the same setup-before-contract sequence. The source column contra
 engine provenance because refresh validates the entire physical source shape.
 
 `tests/fixtures/generator-records.json` captures one valid output of each retained generator
-at 2026-11-04 12:00:00 UTC, random seed 15, business key 17, with the first source-specific agent, support area and customer type from the original DS inserts.
+at 2026-11-04 12:00:00 UTC, random seed 15, business key 9000 (assigned to isolate this fixture from random batches), with the first source-specific agent, support area and customer type from the original DS inserts.
+The fixture also contains a parseable negative-duration REJECT row (9001) and a missing-agent
+INCOMPLETE row (9002). The live check asserts all three reach PRE_ODS, and only the reject
+is absent from ODS.
 `tests/pipeline_oracle.py` computes the expected business row from these source fields using
 Python alone; it imports no package code and reads no project SQL. Live tests in
 `tests/test_pipeline_rows.py` compare scoped target rows after the corresponding pipeline run.

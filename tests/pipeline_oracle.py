@@ -53,11 +53,14 @@ def expected(client, data):
         ),
     }[client]
     identity, agent, area, customer, day, date_format = fields
-    status = data["INTERACTION_STATUS" if a else "STATUS_OF_INTERACTION" if b else "CALL_STATUS"]
+    status = data[
+        "INTERACTION_STATUS" if a else "STATUS_OF_INTERACTION" if b else "CALL_STATUS"
+    ]
     if b:
-        status = {"INTERACTION COMPLETED": "COMPLETED", "CUSTOMER DROPPED": "DROPPED"}.get(
-            status, status
-        )
+        status = {
+            "INTERACTION COMPLETED": "COMPLETED",
+            "CUSTOMER DROPPED": "DROPPED",
+        }.get(status, status)
     handle = (
         int(data["INTERACTION_DURATION" if a else "DURATION"])
         if not b
@@ -80,8 +83,12 @@ def expected(client, data):
     return {
         "source_id": {"alpha": 1, "beta": 2, "gamma": 3}[client],
         "source_system_identifier": str(data[identity]),
-        "agent_id": lookup("agents", "pseudo_code", "agent_id", source_id).get(data[agent]),
-        "interaction_date": datetime.strptime(data[day], date_format).isoformat(sep=" "),
+        "agent_id": lookup("agents", "pseudo_code", "agent_id", source_id).get(
+            data[agent]
+        ),
+        "interaction_date": datetime.strptime(data[day], date_format).isoformat(
+            sep=" "
+        ),
         "support_area_id": lookup(
             "support_areas", "support_area_name", "support_area_id", source_id
         ).get(data[area]),
@@ -99,10 +106,29 @@ def expected(client, data):
         ]
         == ("YES" if a else "TRUE" if b else "1"),
         "query_status": data[
-            "STATUS_OF_CUSTOMER_INCIDENT" if a else "INCIDENT_STATUS" if b else "TICKET_STATUS"
+            "STATUS_OF_CUSTOMER_INCIDENT"
+            if a
+            else "INCIDENT_STATUS"
+            if b
+            else "TICKET_STATUS"
         ],
         "solution_type": data[
-            "SOLUTION_TYPE" if a else "TYPE_OF_RESOLUTION" if b else "RESOLUTION_CATEGORY"
+            "SOLUTION_TYPE"
+            if a
+            else "TYPE_OF_RESOLUTION"
+            if b
+            else "RESOLUTION_CATEGORY"
         ],
         "customer_rating": rating,
     }
+
+
+def eligible(row):
+    """Incomplete values remain eligible; only the declared rejection policies exclude a row."""
+    return (
+        bool(row["source_system_identifier"].strip())
+        and all(
+            row[key] is None or row[key] >= 0 for key in ("handle_time", "work_time")
+        )
+        and (row["customer_rating"] is None or 1 <= row["customer_rating"] <= 5)
+    )
