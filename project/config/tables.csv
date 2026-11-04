@@ -4,6 +4,7 @@ warehouse,ods,interactions,,,,,Y
 warehouse,ods,agents,,,,,Y
 warehouse,ods,support_areas,,,,,Y
 warehouse,ods,customer_types,,,,,Y
+warehouse,dm,customer_support_fact,,,,,Y
 warehouse,dwh,ds_agents,,,,,Y
 warehouse,dwh,ds_customer_types,,,,,Y
 warehouse,dwh,ds_support_areas,,,,,Y

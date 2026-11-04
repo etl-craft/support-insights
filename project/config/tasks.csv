@@ -4,6 +4,7 @@ SI_SETUP,setup_ods_interactions,ETL,SQL,,,warehouse,ods,interactions,Y,Y
 SI_SETUP,setup_ods_agents,ETL,SQL,,,warehouse,ods,agents,Y,Y
 SI_SETUP,setup_ods_support_areas,ETL,SQL,,,warehouse,ods,support_areas,Y,Y
 SI_SETUP,setup_ods_customer_types,ETL,SQL,,,warehouse,ods,customer_types,Y,Y
+SI_SETUP,setup_dm_customer_support_fact,ETL,SQL,,,warehouse,dm,customer_support_fact,Y,Y
 SI_SETUP,setup_dwh_ds_agents,ETL,SQL,,,warehouse,dwh,ds_agents,Y,Y
 SI_REFERENCE,ds_agents_to_dwh,ETL,SQL,,,warehouse,dwh,ds_agents,Y,Y
 SI_REFERENCE,agents_deletes_to_dwh,ETL,SQL,,,warehouse,dwh,ds_agents,Y,Y
@@ -62,3 +63,5 @@ SI_CLIENT_GAMMA,gamma_preods_to_ods_agents,ETL,SQL,,,warehouse,ods,agents,Y,Y
 SI_CLIENT_GAMMA,gamma_preods_to_ods_support_areas,ETL,SQL,,,warehouse,ods,support_areas,Y,Y
 SI_CLIENT_GAMMA,gamma_preods_to_ods_customer_types,ETL,SQL,,,warehouse,ods,customer_types,Y,Y
 SI_CLIENT_GAMMA,gamma_failure_alert,ETL,EMAIL_ALERT,ANY,,,,,Y,Y
+SI_DM,ods_to_dm,ETL,SQL,,,warehouse,dm,customer_support_fact,Y,Y
+SI_DM,dm_failure_alert,ETL,EMAIL_ALERT,ANY,,,,,Y,Y

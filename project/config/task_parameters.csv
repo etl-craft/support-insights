@@ -29,6 +29,12 @@ SI_SETUP,setup_ods_customer_types,SETUP_FOR,SCD1_MERGE,Y
 SI_SETUP,setup_ods_customer_types,POOL,warehouse,Y
 SI_SETUP,setup_ods_customer_types,MEMORY_REQUEST_MB,128,Y
 SI_SETUP,setup_ods_customer_types,CPU_REQUEST,1,Y
+SI_SETUP,setup_dm_customer_support_fact,SQL_ACTION,SETUP_TABLE,Y
+SI_SETUP,setup_dm_customer_support_fact,SCRIPT_FILE,sql_scripts/setup_dm_customer_support_fact.sql,Y
+SI_SETUP,setup_dm_customer_support_fact,SETUP_FOR,SCD2_MERGE,Y
+SI_SETUP,setup_dm_customer_support_fact,POOL,warehouse,Y
+SI_SETUP,setup_dm_customer_support_fact,MEMORY_REQUEST_MB,128,Y
+SI_SETUP,setup_dm_customer_support_fact,CPU_REQUEST,1,Y
 SI_SETUP,setup_dwh_ds_agents,SQL_ACTION,SETUP_TABLE,Y
 SI_SETUP,setup_dwh_ds_agents,SCRIPT_FILE,sql_scripts/setup_dwh_ds_agents.sql,Y
 SI_SETUP,setup_dwh_ds_agents,SETUP_FOR,SCD2_MERGE,Y
@@ -421,5 +427,23 @@ SI_CLIENT_GAMMA,gamma_failure_alert,EMAIL_ON_STATUS,FAILED,Y
 SI_CLIENT_GAMMA,gamma_failure_alert,POOL,warehouse,Y
 SI_CLIENT_GAMMA,gamma_failure_alert,MEMORY_REQUEST_MB,128,Y
 SI_CLIENT_GAMMA,gamma_failure_alert,CPU_REQUEST,1,Y
+SI_DM,ods_to_dm,SQL_ACTION,SCD2_MERGE,Y
+SI_DM,ods_to_dm,SCRIPT_FILE,sql_scripts/ods_to_dm.sql,Y
+SI_DM,ods_to_dm,MERGE_KEY,source_id|source_system_identifier,Y
+SI_DM,ods_to_dm,MERGE_COMPARE_COLUMNS,agent_id|interaction_date|support_area_id|interaction_status|interaction_type|customer_type_id|handle_time|work_time|first_contact_resolution|query_status|solution_type|customer_rating|agent_name|support_area_name|customer_type_name,Y
+SI_DM,ods_to_dm,WATERMARK_TYPE,TIMESTAMP,Y
+SI_DM,ods_to_dm,WATERMARK_COLUMN,ods_changed_at,Y
+SI_DM,ods_to_dm,WATERMARK_START,2026-01-01T00:00:00+00:00,Y
+SI_DM,ods_to_dm,WATERMARK_SOURCE_PIPELINES,"[""SI_CLIENT_ALPHA"", ""SI_CLIENT_BETA"", ""SI_CLIENT_GAMMA"", ""SI_STEWARD_BUSINESS""]",Y
+SI_DM,ods_to_dm,POOL,warehouse,Y
+SI_DM,ods_to_dm,MEMORY_REQUEST_MB,128,Y
+SI_DM,ods_to_dm,CPU_REQUEST,1,Y
+SI_DM,dm_failure_alert,EMAIL_TO,support-team@example.test,Y
+SI_DM,dm_failure_alert,EMAIL_SUBJECT,$$pipeline_code failed,Y
+SI_DM,dm_failure_alert,EMAIL_BODY,Run $$pipeline_run_id failed: $$error_message,Y
+SI_DM,dm_failure_alert,EMAIL_ON_STATUS,FAILED,Y
+SI_DM,dm_failure_alert,POOL,warehouse,Y
+SI_DM,dm_failure_alert,MEMORY_REQUEST_MB,128,Y
+SI_DM,dm_failure_alert,CPU_REQUEST,1,Y
 SI_CLIENT_ALPHA,alpha_source_to_lnd,SECRETS,MONGO_USER|MONGO_PASSWORD,Y
 SI_CLIENT_GAMMA,gamma_source_to_lnd,SECRETS,MINIO_USER|MINIO_PASSWORD,Y

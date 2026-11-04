@@ -5,6 +5,7 @@ write. Python
 scripts only read sources and publish their declared landing batches.
 
 Alpha/Beta run every 15 minutes and Gamma every five minutes, outside 02:00–03:00 UTC.
+SI_DM runs every six hours over committed ODS windows; it has no client success gate.
 SI_REFERENCE runs after seed deployment.
 
 Each client keeps raw fields in PRS history, opens current-run CDC rows, replaces only its
@@ -13,7 +14,8 @@ INCOMPLETE and REPORT rows remain eligible. Rules read this run's rows and the S
 committed flags. Business stewardship follows in its own slice.
 
 The source supplies customer types, not customer identities; the ODS therefore normalizes
-interactions, agents, support areas and customer types. The DM slice follows this source-to-ODS slice.
+interactions, agents, support areas and customer types. DM expands changed lookup entities to
+all affected interaction keys before joining the latest committed ODS rows.
 
 Bootstrap applies config without columns.csv, creates targets through SI_SETUP and seeds
 through seed apply, then applies the full physical landing contracts. Subsequent schema
