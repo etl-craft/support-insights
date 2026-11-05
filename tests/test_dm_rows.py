@@ -24,6 +24,46 @@ class DMRows(unittest.TestCase):
                 ROOT / "project/seeds/warehouse/ds" / table / "data.csv"
             ).open() as stream:
                 seeds[table] = list(csv.DictReader(stream, delimiter="|"))
+        for table, paths in inputs.get("reference_overrides", {}).items():
+            key = {
+                "agents": "agent_id",
+                "customer_types": "customer_type_id",
+                "support_areas": "support_area_id",
+            }[table]
+            for path in paths:
+                with (ROOT / path).open() as stream:
+                    for override in csv.DictReader(stream, delimiter="|"):
+                        override.pop("LOCKED", None)
+                        seeds[table] = [
+                            row for row in seeds[table] if row[key] != override[key]
+                        ] + [override]
+        corrections = {}
+        numbers = {
+            "source_id",
+            "agent_id",
+            "support_area_id",
+            "customer_type_id",
+            "handle_time",
+            "work_time",
+            "customer_rating",
+        }
+        for path in inputs.get("business_overrides", []):
+            with (ROOT / path).open() as stream:
+                for correction in csv.DictReader(stream, delimiter="|"):
+                    correction.pop("LOCKED", None)
+                    correction = {
+                        key: int(value)
+                        if key in numbers
+                        else value.lower() == "true"
+                        if key == "first_contact_resolution"
+                        else value
+                        for key, value in correction.items()
+                    }
+                    corrections[
+                        str(correction["source_id"])
+                        + ":"
+                        + correction["source_system_identifier"]
+                    ] = correction
         self.assertIn(
             "source_runs",
             inputs,
@@ -34,6 +74,8 @@ class DMRows(unittest.TestCase):
         for client in ("alpha", "beta", "gamma"):
             for raw in inputs[client]:
                 row = expected(client, raw)
+                identity = str(row["source_id"]) + ":" + row["source_system_identifier"]
+                row |= corrections.get(identity, {})
                 keys.add((row["source_id"], row["source_system_identifier"]))
                 if not eligible(row):
                     continue
@@ -68,7 +110,9 @@ class DMRows(unittest.TestCase):
                         if source is None
                         else None
                     )
-                row |= inputs["source_runs"][client]
+                row |= inputs.get("provenance_overrides", {}).get(
+                    identity, inputs["source_runs"][client]
+                )
                 wanted.append(row)
         actual = test_pipeline_rows.PipelineRows().rows(
             "dm.customer_support_fact", list(wanted[0])

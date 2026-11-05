@@ -1,0 +1,2 @@
+source_id|source_system_identifier|agent_id|interaction_date|support_area_id|interaction_status|interaction_type|customer_type_id|handle_time|work_time|first_contact_resolution|query_status|solution_type|customer_rating|LOCKED
+2|9000|11|2024-04-14 12:00:00|11|COMPLETED|CALL|11|233|12|false|PENDING RESOLUTION|SELF-HELP OPTION|1|false

@@ -159,7 +159,12 @@ class DMMetadata(unittest.TestCase):
         self.assertNotIn("ods_changed_at", params["MERGE_COMPARE_COLUMNS"].split("|"))
         self.assertEqual(
             set(json.loads(params["WATERMARK_SOURCE_PIPELINES"])),
-            {"SI_CLIENT_ALPHA", "SI_CLIENT_BETA", "SI_CLIENT_GAMMA"},
+            {
+                "SI_CLIENT_ALPHA",
+                "SI_CLIENT_BETA",
+                "SI_CLIENT_GAMMA",
+                "SI_STEWARD_BUSINESS",
+            },
         )
         with (root / "pipelines.csv").open() as stream:
             dm = next(

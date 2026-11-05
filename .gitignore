@@ -4,3 +4,5 @@ __pycache__/
 .state/
 project/logs/*
 !project/logs/.gitkeep
+
+/.env.demo-users

@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+- Add all four upload-only steward pipelines with typed file validation, receipt provenance,
+  per-row uploader attribution and detached reference-history refresh.
+- Add nightly explicit Iceberg maintenance and the documented pause/hold/drain protocol.
+- Fence SI_DM on the business steward writer; extend independent expectations with uploaded
+  business/reference corrections and exact row-level provenance.
+- Store local USER credentials in ignored .env.demo-users (0600), excluded from build contexts.
+
 - Pin package #326 to stop and fail task processes after interrupted START reports.
 - Add independent six-hour SI_DM bounded timestamp windows, flattened SCD2 facts and
   lookup-change expansion. Defer joined values at or beyond the admitted high bound.

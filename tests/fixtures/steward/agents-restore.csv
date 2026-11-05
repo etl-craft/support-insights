@@ -1,0 +1,3 @@
+agent_id|first_name|middle_name|last_name|pseudo_code|source_id|is_active|LOCKED
+1|JOHN|A.|DOE|JDOE|1|true|false
+2|JANE|B.|SMITH|JSMITH|1|true|false

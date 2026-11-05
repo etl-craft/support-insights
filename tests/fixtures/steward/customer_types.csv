@@ -1,0 +1,2 @@
+customer_type_id|customer_type_name|source_id|description|is_active|LOCKED
+1|FIRST-TIME SHOPPER|1|CUSTOMER TYPE FROM CLIENT_ALPHA SOURCE S8B verified|true|true

@@ -90,9 +90,8 @@ agent/customer-type/support-area changes expand affected fact keys. Every joined
 must be below the high bound; later values wait for their matching window. Source run/task
 IDs are provenance, never the cursor. Unchanged facts open no new SCD2 version.
 
-This slice lists the three existing client writers in WATERMARK_SOURCE_PIPELINES. The next
-stewardship slice must add SI_STEWARD_BUSINESS when that pipeline exists; validation refuses
-unknown pipeline codes. There is no placeholder pipeline or client freshness dependency.
+SI_DM lists the three client writers and SI_STEWARD_BUSINESS in WATERMARK_SOURCE_PIPELINES.
+There is no client freshness dependency.
 
 Run `tests/test_dm_windows.py` with DuckDB installed for small SQL fixtures: inclusive low,
 exclusive high, empty windows, lookup-only changes and future joined values deferred to the
@@ -100,3 +99,34 @@ next window. It reads the real project SELECT but computes expected rows indepen
 After a completed matching live DM window, set SI_DM_INPUTS to the captured source fixture
 with source_runs containing the exact client/CDC task-run IDs, and run
 `tests/test_dm_rows.py` against Trino. Full concurrent-writer acceptance remains S8.F.
+
+## Steward files
+
+Four unscheduled pipelines accept pipe-delimited CSV files: SI_STEWARD_DS_AGENTS,
+SI_STEWARD_DS_CUSTOMER_TYPES, SI_STEWARD_DS_SUPPORT_AREAS and SI_STEWARD_BUSINESS.
+Their own validators require the declared header and unique keys, check BIGINT/BOOLEAN/
+UTC timestamp shapes, and permit an optional LOCKED column. Numeric/timestamp CSV cells
+must contain values of their declared types; there is no special NULL marker. Negative
+integer durations remain valid typed input and reach the REJECT rules. Bool fields use the
+package reader; empty LOCKED means the default human lock behavior.
+
+Each landing row carries its receipt's UPLOAD_ID, with no actor columns. The business chain
+selects it through PRS, CDC and PRE_ODS to ODS; managed merges bind each uploader and stamp
+CREATED_BY/UPDATED_BY per row. Only REJECT keys are excluded. LOCKED=false releases the
+uploaded key's existing locks through the documented human-upload path.
+
+The fixtures in tests/fixtures/steward correct the existing source rows (Alpha/Beta key 9000)
+and original reference keys. Restore files return those values and release locks after the
+checks, preserving reference seed contents. Two USER uploads queued behind a held validation
+run enter one following run; each keeps its own identity. The controlled blocker deliberately
+has a bad header and ends FAILED with an alert, as does the upload-free REQUIRE_UPLOADS check.
+Those expected failures remain in audit. Repeating the same file bytes is refused; resume the
+recorded run/files for a retry instead of inventing new upload identities.
+
+Maintenance is unmanaged SQL_SCRIPT. Its nine files name all 31 registered lake tables plus
+the Gamma signal table, with optimize, expire_snapshots and remove_orphan_files once each.
+RETRY_ON=NONE prevents automatic repetition of partially committed scripts. Trino's ALTER
+TABLE EXECUTE syntax is opaque to the generic lineage parser, so validate emits parser
+messages but does not infer the managed-target overlap warning. The independent inventory
+check and operator pause/hold/drain procedure are required regardless of warning availability.
+The full snapshot-retention acceptance remains S8.H.
