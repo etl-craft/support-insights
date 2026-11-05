@@ -78,3 +78,8 @@ LEFT JOIN ods.support_areas AS s
     ON s.support_area_id = i.support_area_id
 LEFT JOIN ods.customer_types AS c
     ON c.customer_type_id = i.customer_type_id
+WHERE
+    i.update_date < $$watermark_max
+    AND (a.agent_id IS NULL OR a.update_date < $$watermark_max)
+    AND (s.support_area_id IS NULL OR s.update_date < $$watermark_max)
+    AND (c.customer_type_id IS NULL OR c.update_date < $$watermark_max)

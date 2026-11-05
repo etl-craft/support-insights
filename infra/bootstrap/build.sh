@@ -1,6 +1,6 @@
 #!/bin/sh
 set -eu
-commit=4a2fda2a6a83790b373856f63410266504302ebf
+commit=8a7e67b917d14a413c27d99dfd2ebd4b19ec61c1
 mkdir -p .state
 image_context=$(mktemp -d "$(pwd)/.state/image.XXXXXX")
 mkdir -p "$image_context/wheels"

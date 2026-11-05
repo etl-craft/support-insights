@@ -2,7 +2,7 @@
 
 A local Trino/Iceberg data-movement example for [etl-craft](https://github.com/etl-craft/etl-craft).
 The project defines the S8.B pipelines for MongoDB, Kafka and MinIO ingestion, reference
-history and normalized ODS. SI_DM, stewardship and maintenance follow in later S8.B slices.
+history, normalized ODS and the six-hour SI_DM mart. Stewardship and maintenance follow in the next S8.B slice.
 Execution order,
 schedules and actions live in `project/config/`; managed SQL remains read-only SELECTs.
 Workflows and the runner remain S8.E; full acceptance checks and the mixed-quality matrix
@@ -32,11 +32,12 @@ for package roles; the generator tag is imported into the node. The engine has t
 one required synchronous standby, and a transaction-mode PgBouncer Pooler for the two UI copies.
 The controller and notification listeners connect directly to `engine-rw`.
 
-Pinned package commit: `4a2fda2a6a83790b373856f63410266504302ebf`, including
+Pinned package commit: `8a7e67b917d14a413c27d99dfd2ebd4b19ec61c1`, including
 [#322](https://github.com/etl-craft/etl-craft/pull/322),
 [#323](https://github.com/etl-craft/etl-craft/pull/323),
 [#324](https://github.com/etl-craft/etl-craft/pull/324) and
-[#325](https://github.com/etl-craft/etl-craft/pull/325).
+[#325](https://github.com/etl-craft/etl-craft/pull/325) and
+[#326](https://github.com/etl-craft/etl-craft/pull/326).
 The measured memory/disk figures are recorded below.
 Images are built locally with that commit's S7.F Dockerfiles and imported with `k3d image import`.
 Nothing is pushed to a registry. S8.E will switch to gated candidate images and wheel evidence.
@@ -206,7 +207,7 @@ docker run --rm --user "$(id -u):$(id -g)" --entrypoint python \
   -v "$(pwd)/tests:/app/tests:ro" \
   -v "$(pwd)/project:/app/project:ro" \
   -v "$(pwd)/reference:/app/reference:ro" \
-  support-insights-generator:4a2fda2a6a83790b373856f63410266504302ebf -m unittest discover -s tests
+  support-insights-generator:8a7e67b917d14a413c27d99dfd2ebd4b19ec61c1 -m unittest discover -s tests
 ```
 
 For the small live row checks, use unused fixture keys (this validation uses 9000–9002, beyond its random batches). Deliver once after random batch checks, then run each client with
@@ -242,7 +243,7 @@ docker run --rm --network host --entrypoint python \
   -e SI_ORACLE_INPUTS=/app/oracle-inputs.json \
   -v "$(pwd)/.state/oracle-inputs.json:/app/oracle-inputs.json:ro" \
   -v "$(pwd)/tests:/app/tests:ro" -v "$(pwd)/project:/app/project:ro" \
-  support-insights-generator:4a2fda2a6a83790b373856f63410266504302ebf \
+  support-insights-generator:8a7e67b917d14a413c27d99dfd2ebd4b19ec61c1 \
   -m unittest discover -s tests -p test_pipeline_rows.py
 ```
 
@@ -335,3 +336,75 @@ loss and a correctly refused stale offset. The corrected mount persists its `bro
 local fixture replay used the audited `mark --offset` operation with a reason. No raw audit
 edits or watermark bypass were used. Attempt 89 was separately reconciled through merged
 package #325, recording PROCESS=ATTESTED and QUERIES=VERIFIED.
+
+## SI_DM window checks
+
+SI_DM is independent of client freshness: `0 */6 * * *` UTC, with a bounded timestamp
+cursor over the three existing client writers. Deploy the new project/config and publish its
+bundle through the bootstrap admin, then run the SI_SETUP task
+`setup_dm_customer_support_fact` once under an explicit run key. Run SI_DM with `--init-only`
+and an explicit run key; inspect that exact run ID. Existing setup/history is preserved.
+The next stewardship slice adds its writer to the fence list when that pipeline exists.
+
+The DM input JSON extends the captured generator manifest with `source_runs`, mapping each
+client to `source_pipeline_run_id` and `source_task_run_id` (its exact `*_prs_to_cdc` task-run
+ID from that client's status JSON). The test compares those known provenance values too;
+it never selects a run by recency.
+
+For controlled checks, keep schedules disabled as during bootstrap and let active source
+writers settle. After the matching DM window succeeds, compare generator inputs and seed
+names independently:
+
+```sh
+SI_DM_INPUTS="$PWD/.state/dm-inputs.json" SI_TRINO_HOST=127.0.0.1 SI_TRINO_PORT=18080 \
+  python -m unittest discover -s tests -p test_dm_rows.py
+python -m unittest discover -s tests -p test_dm_windows.py
+```
+
+Use the package development environment (with DuckDB) for the four deterministic SQL/config
+fixtures, and the temporary Trino port-forward described above for live checks. The fixtures
+prove inclusive low/exclusive high, empty ranges, lookup-only changes and joined values at or
+after high deferred into the following window. Expected rows are plain Python fixtures;
+the SELECT under test is the actual project SQL.
+
+Run another SI_DM window with no intervening ODS writes. It must succeed with zero source
+rows and advance from the previous admitted high to its own high without opening SCD2
+versions. `tests/test_dm_publication.py` checks exact run snapshots plus the live active
+row IDs/hashes; SI_DM_WINDOWS names JSON containing `first`, `empty` (the full status JSON
+for each exact run ID), and `active_before_empty` (the live source_id,
+source_system_identifier, row_id and hash_key inventory captured before the empty run).
+No run is selected by recency, and neither test resets watermarks. The full concurrent
+writer/retry/repair matrix remains S8.F.
+
+During this slice, an old claimed Beta attempt (423) had no recorded process start and
+continued renewing after an interrupted API exchange. Package #326 fixes that defect.
+The stack was upgraded to the merged package commit; reconciliation retained PROCESS
+ATTESTED / QUERIES VERIFIED for the deleted original instance with operator reason and
+all lease/fence/instance checks. DM attempt 429, interrupted during the controlled rollout,
+used the same checked path. Attempt 427 retained VERIFIED process/query evidence. Recovery
+of exact DM run 95 uses its existing identity, never an offset or audit edit.
+
+The first recovered run correctly stopped at the next old fence (Gamma attempt 92), so its
+success alone did not publish the later fixture rows. Reconciliation of that deleted original
+instance removed the final unresolved source ending. Row checks use the subsequent matching
+window, rather than assuming any successful DM run includes the latest source delivery.
+
+Live validation on the merged package commit `8a7e67b917d14a413c27d99dfd2ebd4b19ec61c1`:
+
+| Exact DM run | Result | Source rows / rows written | Admitted low → high (UTC) |
+|---|---|---:|---|
+| 96 (attempt 431) | SUCCESS | 5,714 / 5,714 | 2026-11-04 08:32:40.758454 → 2026-11-05 01:01:11.384294 |
+| 97 (attempt 432) | SUCCESS, empty | 0 / 0 | 2026-11-05 01:01:11.384294 → 2026-11-05 01:01:58.988918 |
+
+The independent fact check passed (one test, 0.379 seconds), comparing six clean/incomplete
+fixture rows, lookup names and exact client/CDC provenance; reject keys remain absent.
+The empty-publication check passed (one test, 0.251 seconds), comparing all 5,714 active row
+IDs/hashes before and after run 97 as well as both windows' recorded bounds. Four local
+DuckDB SQL/config tests passed in 0.402 seconds, including the failing-first joined-high
+case. Generator-image tests passed 15, with 11 explicitly skipped live/DuckDB checks;
+the two new live checks and three SQL checks above ran separately. Validate checked six
+pipelines and 66 tasks with zero failures/warnings. All manifests passed server dry-run.
+
+The prior interrupted attempts remain in audit as expected recovery evidence. Schedules are
+re-enabled after the controlled checks. Full held-writer, retry and old-run repair acceptance
+remains S8.F; the stewardship/maintenance slice must add its writer before enabling it.
