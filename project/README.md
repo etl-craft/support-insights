@@ -5,6 +5,7 @@ write. Python
 scripts only read sources and publish their declared landing batches.
 
 Alpha/Beta run every 15 minutes and Gamma every five minutes, outside 02:00–03:00 UTC.
+SI_DM runs every six hours over committed ODS windows; it has no client success gate.
 SI_REFERENCE runs after seed deployment.
 
 Each client keeps raw fields in PRS history, opens current-run CDC rows, replaces only its
@@ -13,7 +14,8 @@ INCOMPLETE and REPORT rows remain eligible. Rules read this run's rows and the S
 committed flags. Business stewardship follows in its own slice.
 
 The source supplies customer types, not customer identities; the ODS therefore normalizes
-interactions, agents, support areas and customer types. The DM slice follows this source-to-ODS slice.
+interactions, agents, support areas and customer types. DM expands changed lookup entities to
+all affected interaction keys before joining the latest committed ODS rows.
 
 Bootstrap applies config without columns.csv, creates targets through SI_SETUP and seeds
 through seed apply, then applies the full physical landing contracts. Subsequent schema
@@ -66,3 +68,22 @@ rename within one mount. Upload receipts survive pod replacement, and every API 
 exact receipt to an admitted agent. Source credentials stay in the controller/API FILE
 provider; ingestion scripts declare SECRETS and call `task.secret()`. Agents receive only
 the declared values for their fenced attempt through the private task-process pipe.
+
+## Scheduled mart windows
+
+SI_DM runs at 00:00, 06:00, 12:00 and 18:00 UTC, independently of fresh client runs.
+Its SCD2 SELECT uses the package's admitted half-open timestamp window. Interaction and
+agent/customer-type/support-area changes expand affected fact keys. Every joined ODS stamp
+must be below the high bound; later values wait for their matching window. Source run/task
+IDs are provenance, never the cursor. Unchanged facts open no new SCD2 version.
+
+This slice lists the three existing client writers in WATERMARK_SOURCE_PIPELINES. The next
+stewardship slice must add SI_STEWARD_BUSINESS when that pipeline exists; validation refuses
+unknown pipeline codes. There is no placeholder pipeline or client freshness dependency.
+
+Run `tests/test_dm_windows.py` with DuckDB installed for small SQL fixtures: inclusive low,
+exclusive high, empty windows, lookup-only changes and future joined values deferred to the
+next window. It reads the real project SELECT but computes expected rows independently.
+After a completed matching live DM window, set SI_DM_INPUTS to the captured source fixture
+with source_runs containing the exact client/CDC task-run IDs, and run
+`tests/test_dm_rows.py` against Trino. Full concurrent-writer acceptance remains S8.F.
