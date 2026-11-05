@@ -2,7 +2,8 @@
 
 A local Trino/Iceberg data-movement example for [etl-craft](https://github.com/etl-craft/etl-craft).
 The project defines the S8.B pipelines for MongoDB, Kafka and MinIO ingestion, reference
-history, normalized ODS and the six-hour SI_DM mart. Stewardship and maintenance follow in the next S8.B slice.
+history, normalized ODS, the six-hour SI_DM mart, four steward upload pipelines and nightly
+Iceberg maintenance.
 Execution order,
 schedules and actions live in `project/config/`; managed SQL remains read-only SELECTs.
 Workflows and the runner remain S8.E; full acceptance checks and the mixed-quality matrix
@@ -344,7 +345,7 @@ cursor over the three existing client writers. Deploy the new project/config and
 bundle through the bootstrap admin, then run the SI_SETUP task
 `setup_dm_customer_support_fact` once under an explicit run key. Run SI_DM with `--init-only`
 and an explicit run key; inspect that exact run ID. Existing setup/history is preserved.
-The next stewardship slice adds its writer to the fence list when that pipeline exists.
+SI_STEWARD_BUSINESS is included in the writer fence list.
 
 The DM input JSON extends the captured generator manifest with `source_runs`, mapping each
 client to `source_pipeline_run_id` and `source_task_run_id` (its exact `*_prs_to_cdc` task-run
@@ -407,4 +408,119 @@ pipelines and 66 tasks with zero failures/warnings. All manifests passed server 
 
 The prior interrupted attempts remain in audit as expected recovery evidence. Schedules are
 re-enabled after the controlled checks. Full held-writer, retry and old-run repair acceptance
-remains S8.F; the stewardship/maintenance slice must add its writer before enabling it.
+remains S8.F; SI_STEWARD_BUSINESS now participates in the writer fence.
+
+Local USER account names and passwords are stored in the gitignored `.env.demo-users`
+(mode 0600): the admin plus demo-steward-a and demo-steward-b. Keep each newly created
+local demo USER in that file. It is workstation-only and must never enter a bundle or PR.
+
+## Stewardship checks
+
+The four steward pipelines are unscheduled and require an uploaded CSV. Use the project's
+admin token to create USER accounts and grant access, then sign in separately for each user:
+
+```sh
+etl-craft --api https://craft.localhost:8443 --project support_insights account add \
+  --name demo-steward-a --kind USER --role viewer
+etl-craft --api https://craft.localhost:8443 --project support_insights access grant \
+  --account demo-steward-a --permission CAN_VIEW --reason 'Demo project discovery'
+for pipeline in SI_STEWARD_DS_AGENTS SI_STEWARD_DS_CUSTOMER_TYPES \
+  SI_STEWARD_DS_SUPPORT_AREAS SI_STEWARD_BUSINESS; do
+  etl-craft --api https://craft.localhost:8443 --project support_insights access grant \
+    --account demo-steward-a --pipeline "$pipeline" --permission CAN_UPLOAD \
+    --reason 'Demo steward uploads'
+done
+# Repeat for demo-steward-b. Record the chosen passwords in .env.demo-users (0600).
+env -u ETL_CRAFT_TOKEN XDG_CONFIG_HOME="$PWD/.state/steward-a-config" \
+  etl-craft --api https://craft.localhost:8443 --project support_insights login
+```
+
+The USER session must be used without the admin service token in the environment. Service
+uploads intentionally create no human locks. The local validation used two viewer-role USER
+accounts with project CAN_VIEW and CAN_UPLOAD on only these four pipelines.
+
+Upload `tests/fixtures/steward/agents.csv`, `customer_types.csv` and `support_areas.csv` to
+their respective SI_STEWARD_DS pipelines. Each changes an original reference key and ends
+with a detached SI_REFERENCE run; wait for its exact child run ID too. The business files
+correct the existing Alpha and Beta key 9000, preserving source identities:
+
+```sh
+env -u ETL_CRAFT_TOKEN XDG_CONFIG_HOME="$PWD/.state/steward-a-config" \
+  etl-craft --api https://craft.localhost:8443 --project support_insights upload \
+    --pipeline-code SI_STEWARD_BUSINESS tests/fixtures/steward/business-a.csv --format json
+```
+
+For the two-uploader check, pause `validate_file`, admit a controlled bad-header blocker
+file, then upload business-a and business-b from their separate USER sessions while that run
+is held. Resume the validation task. The blocker is an expected refusal with a failure alert;
+both waiting files then enter one following run, retaining distinct upload IDs/accounts.
+Check the exact receipt/run IDs through `uploads` and `status` rather than selecting by recency.
+A separate upload-free manual run of a steward pipeline must fail permanently with
+“no uploaded files in this run”; its FAILURE alert succeeds. These expected failures remain
+audited, with no automatic retry of validation.
+
+`SI_STEWARD_INPUTS` names JSON with `reference` entries for agents/customer_types/support_areas,
+each containing `files`, plus `business.files`. Each file entry has `fixture` (repo-relative CSV),
+`upload_id` and `account`. Run:
+
+```sh
+SI_STEWARD_INPUTS="$PWD/.state/steward-inputs.json" SI_TRINO_HOST=127.0.0.1 SI_TRINO_PORT=18080 \
+  python -m unittest discover -s tests -p test_steward_rows.py
+python -m unittest discover -s tests -p test_steward_validation.py
+```
+
+The live checks compare uploaded values and UPLOAD_ID through LND → PRS → CDC → PRE_ODS →
+ODS, checking each uploader's CREATED_BY/UPDATED_BY on the SCD targets. Reference checks
+compare DS and active DWH copies. The unit tests need the package development environment;
+the generator-only image skips them explicitly. Validators accept optional LOCKED and check
+types before landing; negative integer durations still reach business rules.
+
+Run the next matching SI_DM window to publish corrections. Its independent input manifest
+can add `reference_overrides` (table → CSV paths), `business_overrides` (CSV paths), and
+`provenance_overrides` (`source_id:key` → exact writing pipeline/CDC task-run IDs). Expectations
+apply these uploaded inputs to generator inputs/seeds, without reading project SQL.
+
+The `*-restore.csv` files return fixture values and set LOCKED=false. Reference restore
+batches include an unchanged control record. An entirely unchanged batch retains its prior
+receipt/writer; `retained_metadata`, keyed by the reference ID in a file entry, records those
+known prior values for the oracle. Duplicate file bytes are refused, including older retained
+receipts; resume/rerun the recorded upload context for a retry. The local restore exercise
+encountered an old identical one-row file, then used the declared two-row restore fixture.
+
+## Run maintenance safely
+
+Before the 02:00–03:00 UTC maintenance window, pause every writer definition (clients, DM,
+all stewards, SI_REFERENCE and SI_SETUP), hold every active exact run, including waiting Gamma
+runs and manual selections, and let already executing writes finish. A definition pause or
+cron skip alone does not stop active dispatch. Use the Runs page and explicit status identities
+to enumerate active contexts; do not take only the most recent rows. Keep the holds if draining
+fails. Only then start SI_MAINTENANCE with an explicit run key.
+
+The nine SQL_SCRIPT tasks explicitly cover the 32 lake tables, including Gamma signals.
+They use RETRY_ON=NONE: statements commit independently, so inspect a failed statement before
+any explicit retry. Trino's ALTER TABLE EXECUTE is opaque to the generic parser; validate
+reports parser diagnostics but cannot infer the managed-target overlap warning here. The
+independent inventory test checks every registered table plus the signal table. Operator
+holds/draining remain required. Native execution and full attempt statement logs are authoritative.
+
+After success, release the exact holds and resume each paused definition. Scheduled clients
+and DM use `--then wait`; unscheduled reference/setup/steward definitions do not use `--then`.
+Resume any guarded task definitions too. A held Gamma wait keeps its original 55-minute
+deadline; if it expired while held, it ends SKIPPED when evaluated, without a failure alert.
+The workflow/runner that automates this procedure remains S8.E.
+
+Run `tests/test_maintenance_contract.py` for the explicit table/routine inventory and retry
+policy. The live `tests/test_maintenance_rows.py` takes SI_MAINTENANCE_INPUTS containing the
+exact maintenance `status`, `before` row snapshots, `gamma_before`/`gamma_after` status snapshots
+and `writer_count_before`. It checks nine successful first attempts, unchanged selected
+business row identities/hashes and the preserved Gamma wait start/deadline. Full historical
+snapshot-retention acceptance stays in S8.H.
+
+Local final-slice validation used the pinned package commit above: setup run 135 created/checked
+26 targets; business run 144 admitted two USER uploaders together and the independent oracle
+verified attribution through ODS. Three reference corrections refreshed DWH history; restore/
+unlock batches and DM runs 145/156 matched independent expectations. Maintenance run 158
+completed all nine tasks on their first attempts (96 explicit statements), with no active
+writer, unchanged selected row identities/hashes and Gamma run 157's original wait budget
+preserved. The temporary holds and definition pauses were released afterward. Validation
+checked all 11 pipelines and 108 tasks with zero failures/warnings.

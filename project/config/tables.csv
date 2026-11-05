@@ -19,6 +19,12 @@ warehouse,cdc,client_beta_cs_data,,,,,Y
 warehouse,lnd,client_gamma_cs_data,,,,,Y
 warehouse,prs,client_gamma_cs_data,,,,,Y
 warehouse,cdc,client_gamma_cs_data,,,,,Y
+warehouse,lnd,steward_ds_agents,,,,,Y
+warehouse,lnd,steward_ds_customer_types,,,,,Y
+warehouse,lnd,steward_ds_support_areas,,,,,Y
+warehouse,lnd,steward_cs_data,,,,,Y
+warehouse,prs,steward_cs_data,,,,,Y
+warehouse,cdc,steward_cs_data,,,,,Y
 warehouse,ds,agents,,,,,Y
 warehouse,ds,customer_types,,,,,Y
 warehouse,ds,support_areas,,,,,Y

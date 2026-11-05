@@ -1,0 +1,2 @@
+source_id|source_system_identifier|agent_id|interaction_date|support_area_id|interaction_status|interaction_type|customer_type_id|handle_time|work_time|first_contact_resolution|query_status|solution_type|customer_rating|LOCKED
+1|9000|1|2026-05-27 12:00:00|1|COMPLETED|CALL|1|223|160|true|PENDING CUSTOMER UPDATE|SELF-HELP OPTION|3|false

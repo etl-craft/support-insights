@@ -173,3 +173,61 @@ WHERE
     load_source = 'GAMMA' AND (
         interaction_status = 'TRANSFERRED'
     )",Y
+SI_STEWARD_BUSINESS,steward_rules,steward invalid_identity,1,REJECT,ROW,row_id,warehouse,pre_ods,customer_support_stage,"SELECT
+    t.row_id
+FROM $$rows_in_scope AS t
+WHERE
+    load_source = 'STEWARD'
+    AND (
+        source_system_identifier IS NULL
+        OR TRIM(source_system_identifier) = ''
+        OR source_id IS NULL
+        OR NOT source_id IN (
+            SELECT
+                source_id
+            FROM ds.sources
+            WHERE
+                is_active
+        )
+    )",Y
+SI_STEWARD_BUSINESS,steward_rules,steward negative_duration,1,REJECT,ROW,row_id,warehouse,pre_ods,customer_support_stage,"SELECT
+    t.row_id
+FROM $$rows_in_scope AS t
+WHERE
+    load_source = 'STEWARD' AND (
+        handle_time < 0 OR work_time < 0
+    )",Y
+SI_STEWARD_BUSINESS,steward_rules,steward invalid_rating,1,REJECT,ROW,row_id,warehouse,pre_ods,customer_support_stage,"SELECT
+    t.row_id
+FROM $$rows_in_scope AS t
+WHERE
+    load_source = 'STEWARD'
+    AND (
+        NOT customer_rating IS NULL AND NOT customer_rating BETWEEN 1 AND 5
+    )",Y
+SI_STEWARD_BUSINESS,steward_rules,steward missing_fields,1,INCOMPLETE,ROW,row_id,warehouse,pre_ods,customer_support_stage,"SELECT
+    t.row_id
+FROM $$rows_in_scope AS t
+WHERE
+    load_source = 'STEWARD'
+    AND (
+        agent_id IS NULL
+        OR interaction_date IS NULL
+        OR support_area_id IS NULL
+        OR interaction_status IS NULL
+        OR interaction_type IS NULL
+        OR customer_type_id IS NULL
+        OR handle_time IS NULL
+        OR work_time IS NULL
+        OR first_contact_resolution IS NULL
+        OR query_status IS NULL
+        OR solution_type IS NULL
+        OR customer_rating IS NULL
+    )",Y
+SI_STEWARD_BUSINESS,steward_rules,steward transferred,1,REPORT,ROW,row_id,warehouse,pre_ods,customer_support_stage,"SELECT
+    t.row_id
+FROM $$rows_in_scope AS t
+WHERE
+    load_source = 'STEWARD' AND (
+        interaction_status = 'TRANSFERRED'
+    )",Y

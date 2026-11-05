@@ -7,3 +7,7 @@ Use TMPDIR=$HOME/.cache/etl-craft/tests/tmp-codex, at most two test workers,
 and one suite at a time. Do not run the package service stack while k3d is up.
 Every pod needs memory requests and limits. Keep idle services' requests low;
 keep Trino's request near its limit. Pods must have verified LimitedSwap enabled.
+
+Record every local demo USER account's username and password (including resets) in the gitignored
+`.env.demo-users` file (mode 0600). Keep it excluded from Docker build contexts and bundles;
+never print or commit its values.

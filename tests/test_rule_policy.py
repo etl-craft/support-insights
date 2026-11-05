@@ -9,7 +9,7 @@ ROOT = Path(__file__).parents[1] / "project"
 class RulePolicy(unittest.TestCase):
     def test_every_ods_write_excludes_only_reject_flags(self):
         paths = list((ROOT / "sql_scripts").glob("*_preods_to_ods_*.sql"))
-        self.assertEqual(len(paths), 12)
+        self.assertEqual(len(paths), 16)
         for path in paths:
             with self.subTest(task=path.stem):
                 sql = path.read_text()

@@ -1,17 +1,18 @@
 # Support Insights pipelines
 
 The config CSVs define execution order. SQL files contain one read-only SELECT per managed
-write. Python
+write; the maintenance files list their unmanaged Iceberg operations explicitly. Python
 scripts only read sources and publish their declared landing batches.
 
 Alpha/Beta run every 15 minutes and Gamma every five minutes, outside 02:00–03:00 UTC.
 SI_DM runs every six hours over committed ODS windows; it has no client success gate.
-SI_REFERENCE runs after seed deployment.
+SI_REFERENCE runs after seed deployment or detached from reference stewardship.
 
 Each client keeps raw fields in PRS history, opens current-run CDC rows, replaces only its
 PRE_ODS slice, then evaluates row rules. Only REJECT rows are excluded from ODS;
 INCOMPLETE and REPORT rows remain eligible. Rules read this run's rows and the SQL consumers read this run's
-committed flags. Business stewardship follows in its own slice.
+committed flags. Business steward corrections carry the original source_id and business key,
+with load_source=STEWARD and per-file upload attribution.
 
 The source supplies customer types, not customer identities; the ODS therefore normalizes
 interactions, agents, support areas and customer types. DM expands changed lookup entities to
@@ -49,13 +50,25 @@ PRE_ODS values. The `negative_duration` REJECT rule flags those keys; invalid id
 separate. Only REJECT rows are excluded from ODS; INCOMPLETE and REPORT rows remain eligible.
 For example: `python generators/client_beta_data_generator.py 3 --rejectable`.
 
-## Reserved maintenance window
+## Maintenance window
 
-Client schedules skip 02:00–03:00 UTC. Before maintenance, pause the client definitions,
-hold every active run (including a waiting Gamma run), and wait for active writers to finish.
-Release the exact holds and resume scheduled definitions with `--then wait` afterward.
-Gamma retains its original 55-minute deadline while held; an expired idle wait ends SKIPPED
-without an alert. The maintenance pipeline and its full walkthrough ship in the later slice.
+Client schedules skip 02:00–03:00 UTC. Before 02:00, pause each client definition with
+`etl-craft pause --pipeline-code SI_CLIENT_ALPHA --reason 'Iceberg maintenance'` (and Beta,
+Gamma), then hold each active run with
+`etl-craft hold --pipeline-code SI_CLIENT_GAMMA --run-id <id> --reason 'Iceberg maintenance'`.
+Hold waiting Gamma runs too: an arriving object must not admit ingestion during maintenance.
+Pause new business stewardship/DM admission and hold their active writer runs as well.
+Wait for already running write attempts to finish before SI_MAINTENANCE starts. A schedule
+skip does not drain writers. Keep holds if draining misses the window; do not overlap writes
+with maintenance.
+
+After successful maintenance, release each exact held run using
+`etl-craft release --pipeline-code <pipeline> --run-id <id> --reason 'Maintenance complete'`,
+then `etl-craft resume --pipeline-code <scheduled-pipeline> --then wait
+--reason 'Maintenance complete'` for each paused scheduled definition. Resume the unscheduled
+business steward definition without `--then`. Release and resume control different scopes. Gamma retains its original
+55-minute event deadline while held; an expired no-signal wait ends SKIPPED and sends no
+failure alert. The deployment runner that automates this sequence remains S8.E.
 
 The Iceberg REST fixture uses one JDBC catalog connection (`CATALOG_CLIENTS=1`) for its
 SQLite metadata database, WAL mode and a bounded 30-second busy timeout. This serializes
@@ -77,9 +90,8 @@ agent/customer-type/support-area changes expand affected fact keys. Every joined
 must be below the high bound; later values wait for their matching window. Source run/task
 IDs are provenance, never the cursor. Unchanged facts open no new SCD2 version.
 
-This slice lists the three existing client writers in WATERMARK_SOURCE_PIPELINES. The next
-stewardship slice must add SI_STEWARD_BUSINESS when that pipeline exists; validation refuses
-unknown pipeline codes. There is no placeholder pipeline or client freshness dependency.
+SI_DM lists the three client writers and SI_STEWARD_BUSINESS in WATERMARK_SOURCE_PIPELINES.
+There is no client freshness dependency.
 
 Run `tests/test_dm_windows.py` with DuckDB installed for small SQL fixtures: inclusive low,
 exclusive high, empty windows, lookup-only changes and future joined values deferred to the
@@ -87,3 +99,34 @@ next window. It reads the real project SELECT but computes expected rows indepen
 After a completed matching live DM window, set SI_DM_INPUTS to the captured source fixture
 with source_runs containing the exact client/CDC task-run IDs, and run
 `tests/test_dm_rows.py` against Trino. Full concurrent-writer acceptance remains S8.F.
+
+## Steward files
+
+Four unscheduled pipelines accept pipe-delimited CSV files: SI_STEWARD_DS_AGENTS,
+SI_STEWARD_DS_CUSTOMER_TYPES, SI_STEWARD_DS_SUPPORT_AREAS and SI_STEWARD_BUSINESS.
+Their own validators require the declared header and unique keys, check BIGINT/BOOLEAN/
+UTC timestamp shapes, and permit an optional LOCKED column. Numeric/timestamp CSV cells
+must contain values of their declared types; there is no special NULL marker. Negative
+integer durations remain valid typed input and reach the REJECT rules. Bool fields use the
+package reader; empty LOCKED means the default human lock behavior.
+
+Each landing row carries its receipt's UPLOAD_ID, with no actor columns. The business chain
+selects it through PRS, CDC and PRE_ODS to ODS; managed merges bind each uploader and stamp
+CREATED_BY/UPDATED_BY per row. Only REJECT keys are excluded. LOCKED=false releases the
+uploaded key's existing locks through the documented human-upload path.
+
+The fixtures in tests/fixtures/steward correct the existing source rows (Alpha/Beta key 9000)
+and original reference keys. Restore files return those values and release locks after the
+checks, preserving reference seed contents. Two USER uploads queued behind a held validation
+run enter one following run; each keeps its own identity. The controlled blocker deliberately
+has a bad header and ends FAILED with an alert, as does the upload-free REQUIRE_UPLOADS check.
+Those expected failures remain in audit. Repeating the same file bytes is refused; resume the
+recorded run/files for a retry instead of inventing new upload identities.
+
+Maintenance is unmanaged SQL_SCRIPT. Its nine files name all 31 registered lake tables plus
+the Gamma signal table, with optimize, expire_snapshots and remove_orphan_files once each.
+RETRY_ON=NONE prevents automatic repetition of partially committed scripts. Trino's ALTER
+TABLE EXECUTE syntax is opaque to the generic lineage parser, so validate emits parser
+messages but does not infer the managed-target overlap warning. The independent inventory
+check and operator pause/hold/drain procedure are required regardless of warning availability.
+The full snapshot-retention acceptance remains S8.H.

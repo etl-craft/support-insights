@@ -53,12 +53,15 @@ class PipelineRows(unittest.TestCase):
     def client(self, name):
         candidates = [expected(name, row) for row in self.inputs[name]]
         wanted = [row for row in candidates if eligible(row)]
-        stage = self.rows("pre_ods.customer_support_stage", list(candidates[0]))
+        stage = self.rows(
+            "pre_ods.customer_support_stage", [*candidates[0], "load_source"]
+        )
         keys = {(r["source_id"], r["source_system_identifier"]) for r in candidates}
         stage = [
             row
             for row in stage
-            if (row["source_id"], row["source_system_identifier"]) in keys
+            if row.pop("load_source") == name.upper()
+            and (row["source_id"], row["source_system_identifier"]) in keys
         ]
         for row in stage:
             row["interaction_date"] = (
