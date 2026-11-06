@@ -173,11 +173,12 @@ requests; access grants use the package's admin commands outside config CI; reti
   scratch folder, `ETL_CRAFT_WHEEL=path` skips the build).
 - **`deploy.yml`** runs on a push to `main` that touches `project/`, on the self-hosted runner in the demo
   cluster (label `support-insights`), in the GitHub environment `production`. It installs the same pinned
-  command line and runs `validate`, `config apply`, `bundle publish`, `seed apply` and `run` of
-  `SI_REFERENCE`, all with `--api`. It holds one developer token and no Engine DB or artifact-store
+  command line and runs `bundle publish`, `config apply --bundle latest`, `validate`, `seed apply` and
+  `run` of `SI_REFERENCE`, all with `--api`; the first bundle publish of a project must be an admin's, which
+  approves its connection contract. It holds one developer token and no Engine DB or artifact-store
   credential, and no workflow on that runner runs on `pull_request`.
 - **`ci/PACKAGE_COMMIT`** is the one package commit both workflows install; it needs `login
-  --password-stdin` (package #338). The cluster images keep their own pin until S8.E.
+  --password-stdin` (package #338) and `config apply --bundle` (package #339, fixed over HTTP by #340). The cluster images keep their own pin until S8.E.
 
 The repository settings these workflows rely on are not in the repository. Create them once:
 an environment named `production` with required reviewers; in it the secret `ETL_CRAFT_DEVELOPER_TOKEN`
