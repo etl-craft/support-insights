@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- Add the configuration CI: `validate.yml` (pull requests, no secrets, a local DuckDB warehouse via
+  `ci/validate.sh`) and `deploy.yml` (push to `main`, self-hosted runner, reviewed `production`
+  environment, one developer token), with `ci/PACKAGE_COMMIT` as the single package pin for both.
 - Add all four upload-only steward pipelines with typed file validation, receipt provenance,
   per-row uploader attribution and detached reference-history refresh.
 - Add nightly explicit Iceberg maintenance and the documented pause/hold/drain protocol.
