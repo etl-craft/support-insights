@@ -6,8 +6,9 @@ history, normalized ODS, the six-hour SI_DM mart, four steward upload pipelines 
 Iceberg maintenance.
 Execution order,
 schedules and actions live in `project/config/`; managed SQL remains read-only SELECTs.
-Workflows and the runner remain S8.E; full acceptance checks and the mixed-quality matrix
-remain S8.F/H.
+The configuration workflows are described under [Configuration through CI](#configuration-through-ci);
+the candidate-image workflow and the self-hosted runner's container remain S8.E, and full acceptance
+checks and the mixed-quality matrix remain S8.F/H.
 
 Only business-rule **REJECT** flags exclude rows from ODS. INCOMPLETE and REPORT rows remain
 eligible. Each generator accepts `--rejectable` to produce bounded, parseable negative-duration
@@ -152,6 +153,37 @@ export SSL_CERT_FILE="$(pwd)/.state/tls.crt"
 in the FILE provider mounted on controller/API pods only. The controller/API host configuration resides on the project PVC, so uploads and processed
 uploads share one mount across both UI copies and the controller. The project guide covers
 maintenance holds and source policies; the deployment workflow remains S8.E.
+
+## Configuration through CI
+
+Metadata is code in `project/config/`. Pipeline, rule and stewardable-pipeline edits are pull
+requests; access grants use the package's admin commands outside config CI; retiring a row sets
+`ACTIVE_FLAG = 'N'`. Nobody edits the Engine DB by hand.
+
+- **`validate.yml`** runs on every pull request that touches `project/`, `ci/` or itself, on a
+  GitHub-hosted runner, with no secrets. It runs `ci/validate.sh`: build the wheel at the commit in
+  `ci/PACKAGE_COMMIT` (printing its SHA-256), migrate an empty SQLite Engine DB, create the first admin
+  with `setup` and `login --password-stdin`, add the project and its pools, bootstrap a local DuckDB
+  warehouse (`ci/warehouse.sql`: the same schemas as `infra/bootstrap/warehouse.sql` and the one source
+  table `validate` probes), then `config plan`, `config apply`, `bundle publish` and `validate` on a scratch
+  copy of `project/` whose connector is `ci/craft-connector.yml`. The declared secret names get placeholder
+  values (`validate` checks that they exist, never their value). A bad seed value fails the job: seed files
+  are validated from the published bundle against the DuckDB warehouse, so publishing precedes `validate`.
+  Run it on any machine with `uv` and Git: `ci/validate.sh` (about 30 seconds; `SI_CI_WORK=dir` keeps the
+  scratch folder, `ETL_CRAFT_WHEEL=path` skips the build).
+- **`deploy.yml`** runs on a push to `main` that touches `project/`, on the self-hosted runner in the demo
+  cluster (label `support-insights`), in the GitHub environment `production`. It installs the same pinned
+  command line and runs `validate`, `config apply`, `bundle publish`, `seed apply` and `run` of
+  `SI_REFERENCE`, all with `--api`. It holds one developer token and no Engine DB or artifact-store
+  credential, and no workflow on that runner runs on `pull_request`.
+- **`ci/PACKAGE_COMMIT`** is the one package commit both workflows install; it needs `login
+  --password-stdin` (package #338). The cluster images keep their own pin until S8.E.
+
+The repository settings these workflows rely on are not in the repository. Create them once:
+an environment named `production` with required reviewers; in it the secret `ETL_CRAFT_DEVELOPER_TOKEN`
+(a `developer` token from `etl-craft token create --role developer`) and the variable `ETL_CRAFT_API`;
+and a self-hosted runner container in the cluster labelled `support-insights`. Protect `main` so a pull
+request must pass `Validate`. `deploy.yml` has not run yet.
 
 ## Source bounds and batches
 

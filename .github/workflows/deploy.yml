@@ -1,0 +1,40 @@
+# Pushes to main that change the project: apply it to the running deployment. It runs only on the
+# self-hosted runner in the demo cluster, only after a required reviewer approves the
+# `production` environment, and holds one developer token: no Engine DB or artifact-store
+# credential. Nothing on that runner runs on pull_request.
+name: Deploy
+on:
+  push:
+    branches: [main]
+    paths:
+      - "project/**"
+permissions:
+  contents: read
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+jobs:
+  deploy:
+    name: apply the project to the deployment
+    runs-on: [self-hosted, support-insights]
+    environment: production
+    timeout-minutes: 60
+    env:
+      ETL_CRAFT_API: ${{ vars.ETL_CRAFT_API }}
+      ETL_CRAFT_TOKEN: ${{ secrets.ETL_CRAFT_DEVELOPER_TOKEN }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
+      - name: Install the pinned etl-craft command line
+        run: ci/install.sh "$RUNNER_TEMP/etl-craft"
+      - name: Validate, apply, publish, seed and run the reference pipeline
+        run: |
+          PATH="$RUNNER_TEMP/etl-craft/venv/bin:$PATH"
+          cli="etl-craft --api $ETL_CRAFT_API --project support_insights --yes"
+          $cli validate
+          $cli config apply --project-dir project
+          $cli bundle publish --project-dir project
+          $cli seed apply
+          $cli run --pipeline-code SI_REFERENCE
