@@ -18,6 +18,6 @@ if [ -z "$wheel" ]; then
   wheel=$(ls "$work"/dist/etl_craft-*-py3-none-any.whl)
 fi
 echo "etl-craft wheel $(basename "$wheel") sha256 $(sha256sum "$wheel" | cut -d' ' -f1) (package commit $commit)"
-uv venv --quiet "$work/venv"
+uv venv --quiet --clear "$work/venv"
 requirement="etl-craft${extras:+[$extras]} @ file://$wheel"
 VIRTUAL_ENV="$work/venv" uv pip install --quiet "$requirement"

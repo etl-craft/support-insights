@@ -27,6 +27,11 @@ Warehouse:
     Schema: aud_mirror
     User: etl_craft
     Auth_mode: NONE
+Cloning:
+  Every_minutes: 5
+  dev:
+    Enabled: true
+    Scope: AUD
 Docs_site:
   Trusted_proxies:
   - 10.42.0.0/16
