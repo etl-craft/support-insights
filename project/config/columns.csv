@@ -139,3 +139,132 @@ warehouse,lnd,steward_cs_data,pipeline_id,BIGINT,20,Y,Y
 warehouse,lnd,steward_cs_data,pipeline_run_id,BIGINT,21,Y,Y
 warehouse,lnd,steward_cs_data,task_run_id,BIGINT,22,Y,Y
 warehouse,lnd,steward_cs_data,create_date,TIMESTAMP(6) WITH TIME ZONE,23,Y,Y
+warehouse,aud_mirror,aud_business_rules_results,business_rule_result_id,BIGINT,1,Y,Y
+warehouse,aud_mirror,aud_business_rules_results,business_rule_run_id,BIGINT,2,Y,Y
+warehouse,aud_mirror,aud_business_rules_results,business_rule_id,BIGINT,3,Y,Y
+warehouse,aud_mirror,aud_business_rules_results,business_rule_key,VARCHAR,4,Y,Y
+warehouse,aud_mirror,aud_business_rules_results,status,VARCHAR,5,Y,Y
+warehouse,aud_mirror,aud_business_rules_results,active_flag,VARCHAR,6,Y,Y
+warehouse,aud_mirror,aud_business_rules_results,start_date,TIMESTAMP(6) WITH TIME ZONE,7,Y,Y
+warehouse,aud_mirror,aud_business_rules_results,end_date,TIMESTAMP(6) WITH TIME ZONE,8,Y,Y
+warehouse,aud_mirror,aud_business_rules_results,target_catalog_name,VARCHAR,9,Y,Y
+warehouse,aud_mirror,aud_business_rules_results,target_schema_name,VARCHAR,10,Y,Y
+warehouse,aud_mirror,aud_business_rules_results,target_table_name,VARCHAR,11,Y,Y
+warehouse,aud_mirror,aud_business_rules_results,updated_at,TIMESTAMP(6) WITH TIME ZONE,12,Y,Y
+warehouse,aud_mirror,aud_business_rules_run_log,business_rule_run_id,BIGINT,1,Y,Y
+warehouse,aud_mirror,aud_business_rules_run_log,business_rule_id,BIGINT,2,Y,Y
+warehouse,aud_mirror,aud_business_rules_run_log,task_run_id,BIGINT,3,Y,Y
+warehouse,aud_mirror,aud_business_rules_run_log,start_date,TIMESTAMP(6) WITH TIME ZONE,4,Y,Y
+warehouse,aud_mirror,aud_business_rules_run_log,end_date,TIMESTAMP(6) WITH TIME ZONE,5,Y,Y
+warehouse,aud_mirror,aud_business_rules_run_log,status,VARCHAR,6,Y,Y
+warehouse,aud_mirror,aud_business_rules_run_log,updated_at,TIMESTAMP(6) WITH TIME ZONE,7,Y,Y
+warehouse,aud_mirror,aud_business_rules_run_log,passed,VARCHAR,8,Y,Y
+warehouse,aud_mirror,aud_business_rules_run_log,observed,VARCHAR,9,Y,Y
+warehouse,aud_mirror,aud_business_rules_run_log,detail,VARCHAR,10,Y,Y
+warehouse,aud_mirror,aud_cfg_pipelines_history,change_id,BIGINT,1,Y,Y
+warehouse,aud_mirror,aud_cfg_pipelines_history,valid_from,TIMESTAMP(6) WITH TIME ZONE,2,Y,Y
+warehouse,aud_mirror,aud_cfg_pipelines_history,valid_to,TIMESTAMP(6) WITH TIME ZONE,3,Y,Y
+warehouse,aud_mirror,aud_cfg_pipelines_history,current_flag,VARCHAR,4,Y,Y
+warehouse,aud_mirror,aud_cfg_pipelines_history,operation,VARCHAR,5,Y,Y
+warehouse,aud_mirror,aud_cfg_pipelines_history,actor,VARCHAR,6,Y,Y
+warehouse,aud_mirror,aud_cfg_pipelines_history,actor_kind,VARCHAR,7,Y,Y
+warehouse,aud_mirror,aud_cfg_pipelines_history,migration,VARCHAR,8,Y,Y
+warehouse,aud_mirror,aud_cfg_pipelines_history,pipeline_id,BIGINT,9,Y,Y
+warehouse,aud_mirror,aud_cfg_pipelines_history,pipeline_code,VARCHAR,10,Y,Y
+warehouse,aud_mirror,aud_cfg_pipelines_history,pipeline_name,VARCHAR,11,Y,Y
+warehouse,aud_mirror,aud_cfg_pipelines_history,description,VARCHAR,12,Y,Y
+warehouse,aud_mirror,aud_cfg_pipelines_history,run_schedule,VARCHAR,13,Y,Y
+warehouse,aud_mirror,aud_cfg_pipelines_history,sla_in_hours,"DECIMAL(38,10)",14,Y,Y
+warehouse,aud_mirror,aud_cfg_pipelines_history,refresh_type,VARCHAR,15,Y,Y
+warehouse,aud_mirror,aud_cfg_pipelines_history,active_flag,VARCHAR,16,Y,Y
+warehouse,aud_mirror,aud_cfg_pipelines_history,pipeline_parameters,VARCHAR,17,Y,Y
+warehouse,aud_mirror,aud_cfg_pipelines_history,created_by,VARCHAR,18,Y,Y
+warehouse,aud_mirror,aud_cfg_pipelines_history,create_date,TIMESTAMP(6) WITH TIME ZONE,19,Y,Y
+warehouse,aud_mirror,aud_cfg_pipelines_history,updated_by,VARCHAR,20,Y,Y
+warehouse,aud_mirror,aud_cfg_pipelines_history,updated_date,TIMESTAMP(6) WITH TIME ZONE,21,Y,Y
+warehouse,aud_mirror,aud_cfg_pipelines_history,schedule_timezone,VARCHAR,22,Y,Y
+warehouse,aud_mirror,aud_cfg_pipelines_history,catchup,VARCHAR,23,Y,Y
+warehouse,aud_mirror,aud_cfg_pipelines_history,max_catchup_runs,BIGINT,24,Y,Y
+warehouse,aud_mirror,aud_cfg_pipelines_history,overlap_policy,VARCHAR,25,Y,Y
+warehouse,aud_mirror,aud_cfg_pipelines_history,schedule_start_date,DATE,26,Y,Y
+warehouse,aud_mirror,aud_cfg_pipelines_history,max_parallel_tasks,BIGINT,27,Y,Y
+warehouse,aud_mirror,aud_cfg_pipelines_history,priority,BIGINT,28,Y,Y
+warehouse,aud_mirror,aud_cfg_pipelines_history,project_id,BIGINT,29,Y,Y
+warehouse,aud_mirror,aud_cfg_pipelines_history,updated_at,TIMESTAMP(6) WITH TIME ZONE,30,Y,Y
+warehouse,aud_mirror,aud_cfg_pipelines_history,block_on_refresh_error,VARCHAR,31,Y,Y
+warehouse,aud_mirror,aud_cfg_pipelines_history,calendar_id,BIGINT,32,Y,Y
+warehouse,aud_mirror,aud_cfg_pipelines_history,non_business_day,VARCHAR,33,Y,Y
+warehouse,aud_mirror,aud_cfg_pipelines_history,stewardable_flag,VARCHAR,34,Y,Y
+warehouse,aud_mirror,aud_cfg_tasks_history,change_id,BIGINT,1,Y,Y
+warehouse,aud_mirror,aud_cfg_tasks_history,valid_from,TIMESTAMP(6) WITH TIME ZONE,2,Y,Y
+warehouse,aud_mirror,aud_cfg_tasks_history,valid_to,TIMESTAMP(6) WITH TIME ZONE,3,Y,Y
+warehouse,aud_mirror,aud_cfg_tasks_history,current_flag,VARCHAR,4,Y,Y
+warehouse,aud_mirror,aud_cfg_tasks_history,operation,VARCHAR,5,Y,Y
+warehouse,aud_mirror,aud_cfg_tasks_history,actor,VARCHAR,6,Y,Y
+warehouse,aud_mirror,aud_cfg_tasks_history,actor_kind,VARCHAR,7,Y,Y
+warehouse,aud_mirror,aud_cfg_tasks_history,migration,VARCHAR,8,Y,Y
+warehouse,aud_mirror,aud_cfg_tasks_history,task_id,BIGINT,9,Y,Y
+warehouse,aud_mirror,aud_cfg_tasks_history,task_code,VARCHAR,10,Y,Y
+warehouse,aud_mirror,aud_cfg_tasks_history,task_type,VARCHAR,11,Y,Y
+warehouse,aud_mirror,aud_cfg_tasks_history,pipeline_id,BIGINT,12,Y,Y
+warehouse,aud_mirror,aud_cfg_tasks_history,handler,VARCHAR,13,Y,Y
+warehouse,aud_mirror,aud_cfg_tasks_history,run_condition,VARCHAR,14,Y,Y
+warehouse,aud_mirror,aud_cfg_tasks_history,run_condition_count,BIGINT,15,Y,Y
+warehouse,aud_mirror,aud_cfg_tasks_history,active_flag,VARCHAR,16,Y,Y
+warehouse,aud_mirror,aud_cfg_tasks_history,created_by,VARCHAR,17,Y,Y
+warehouse,aud_mirror,aud_cfg_tasks_history,create_date,TIMESTAMP(6) WITH TIME ZONE,18,Y,Y
+warehouse,aud_mirror,aud_cfg_tasks_history,updated_by,VARCHAR,19,Y,Y
+warehouse,aud_mirror,aud_cfg_tasks_history,updated_date,TIMESTAMP(6) WITH TIME ZONE,20,Y,Y
+warehouse,aud_mirror,aud_cfg_tasks_history,target_table_id,BIGINT,21,Y,Y
+warehouse,aud_mirror,aud_cfg_tasks_history,target_active_flag,VARCHAR,22,Y,Y
+warehouse,aud_mirror,aud_cfg_tasks_history,updated_at,TIMESTAMP(6) WITH TIME ZONE,23,Y,Y
+warehouse,aud_mirror,aud_pipelines_run_log,pipeline_run_id,BIGINT,1,Y,Y
+warehouse,aud_mirror,aud_pipelines_run_log,pipeline_id,BIGINT,2,Y,Y
+warehouse,aud_mirror,aud_pipelines_run_log,start_date,TIMESTAMP(6) WITH TIME ZONE,3,Y,Y
+warehouse,aud_mirror,aud_pipelines_run_log,end_date,TIMESTAMP(6) WITH TIME ZONE,4,Y,Y
+warehouse,aud_mirror,aud_pipelines_run_log,status,VARCHAR,5,Y,Y
+warehouse,aud_mirror,aud_pipelines_run_log,sla_status,VARCHAR,6,Y,Y
+warehouse,aud_mirror,aud_pipelines_run_log,run_date,DATE,7,Y,Y
+warehouse,aud_mirror,aud_pipelines_run_log,backfill,VARCHAR,8,Y,Y
+warehouse,aud_mirror,aud_pipelines_run_log,run_key,VARCHAR,9,Y,Y
+warehouse,aud_mirror,aud_pipelines_run_log,trigger_kind,VARCHAR,10,Y,Y
+warehouse,aud_mirror,aud_pipelines_run_log,owner_id,VARCHAR,11,Y,Y
+warehouse,aud_mirror,aud_pipelines_run_log,lease_expires_at,TIMESTAMP(6) WITH TIME ZONE,12,Y,Y
+warehouse,aud_mirror,aud_pipelines_run_log,output_revision,BIGINT,13,Y,Y
+warehouse,aud_mirror,aud_pipelines_run_log,config_sha256,VARCHAR,14,Y,Y
+warehouse,aud_mirror,aud_pipelines_run_log,started_by,VARCHAR,15,Y,Y
+warehouse,aud_mirror,aud_pipelines_run_log,started_by_kind,VARCHAR,16,Y,Y
+warehouse,aud_mirror,aud_pipelines_run_log,ended_by,VARCHAR,17,Y,Y
+warehouse,aud_mirror,aud_pipelines_run_log,ended_by_kind,VARCHAR,18,Y,Y
+warehouse,aud_mirror,aud_pipelines_run_log,repair_pending,VARCHAR,19,Y,Y
+warehouse,aud_mirror,aud_pipelines_run_log,writer,VARCHAR,20,Y,Y
+warehouse,aud_mirror,aud_pipelines_run_log,task_selection,VARCHAR,21,Y,Y
+warehouse,aud_mirror,aud_pipelines_run_log,exclusive_run,VARCHAR,22,Y,Y
+warehouse,aud_mirror,aud_pipelines_run_log,triggered_by_task_run_id,BIGINT,23,Y,Y
+warehouse,aud_mirror,aud_pipelines_run_log,sso_group_ids,VARCHAR,24,Y,Y
+warehouse,aud_mirror,aud_pipelines_run_log,bundle_id,VARCHAR,25,Y,Y
+warehouse,aud_mirror,aud_pipelines_run_log,metadata_version,VARCHAR,26,Y,Y
+warehouse,aud_mirror,aud_pipelines_run_log,metadata_snapshot,VARCHAR,27,Y,Y
+warehouse,aud_mirror,aud_pipelines_run_log,updated_at,TIMESTAMP(6) WITH TIME ZONE,28,Y,Y
+warehouse,aud_mirror,aud_pipelines_run_log,sla_breached_at,TIMESTAMP(6) WITH TIME ZONE,29,Y,Y
+warehouse,aud_mirror,aud_task_run_log,task_run_id,BIGINT,1,Y,Y
+warehouse,aud_mirror,aud_task_run_log,task_id,BIGINT,2,Y,Y
+warehouse,aud_mirror,aud_task_run_log,pipeline_run_id,BIGINT,3,Y,Y
+warehouse,aud_mirror,aud_task_run_log,start_date,TIMESTAMP(6) WITH TIME ZONE,4,Y,Y
+warehouse,aud_mirror,aud_task_run_log,end_date,TIMESTAMP(6) WITH TIME ZONE,5,Y,Y
+warehouse,aud_mirror,aud_task_run_log,status,VARCHAR,6,Y,Y
+warehouse,aud_mirror,aud_task_run_log,source_count,BIGINT,7,Y,Y
+warehouse,aud_mirror,aud_task_run_log,target_count,BIGINT,8,Y,Y
+warehouse,aud_mirror,aud_task_run_log,insert_count,BIGINT,9,Y,Y
+warehouse,aud_mirror,aud_task_run_log,update_count,BIGINT,10,Y,Y
+warehouse,aud_mirror,aud_task_run_log,delete_count,BIGINT,11,Y,Y
+warehouse,aud_mirror,aud_task_run_log,error_message,VARCHAR,12,Y,Y
+warehouse,aud_mirror,aud_task_run_log,task_log,VARCHAR,13,Y,Y
+warehouse,aud_mirror,aud_task_run_log,attempt_count,BIGINT,14,Y,Y
+warehouse,aud_mirror,aud_task_run_log,rows_written,BIGINT,15,Y,Y
+warehouse,aud_mirror,aud_task_run_log,reject_count,BIGINT,16,Y,Y
+warehouse,aud_mirror,aud_task_run_log,watermark_from,VARCHAR,17,Y,Y
+warehouse,aud_mirror,aud_task_run_log,watermark_to,VARCHAR,18,Y,Y
+warehouse,aud_mirror,aud_task_run_log,trigger_generation,BIGINT,19,Y,Y
+warehouse,aud_mirror,aud_task_run_log,updated_at,TIMESTAMP(6) WITH TIME ZONE,20,Y,Y
+warehouse,aud_mirror,aud_task_run_log,duplicate_count,BIGINT,21,Y,Y
