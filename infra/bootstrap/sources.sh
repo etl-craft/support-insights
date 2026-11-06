@@ -21,7 +21,12 @@ kubectl exec -i deploy/minio-gamma -- sh -ec '
 {"Rules":[{"ID":"gamma-expiry","Status":"Enabled","Filter":{"Prefix":""},"Expiration":{"Days":2}}]}
 JSON
 kubectl rollout status deploy/mongodb --timeout=180s
-kubectl exec deploy/mongodb -- sh -ec 'mongosh --quiet --username "$MONGO_INITDB_ROOT_USERNAME" --password "$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin --eval "$1"' -- 'db.getSiblingDB("support_insights").support.createIndex({created_at:1},{expireAfterSeconds:172800})'
+# The pod is Ready before the entrypoint has created the root user; retry until it authenticates.
+for attempt in 1 2 3 4 5 6 7 8 9 10; do
+  if kubectl exec deploy/mongodb -- sh -ec 'mongosh --quiet --username "$MONGO_INITDB_ROOT_USERNAME" --password "$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin --eval "$1"' -- 'db.getSiblingDB("support_insights").support.createIndex({created_at:1},{expireAfterSeconds:172800})' ; then break; fi
+  [ "$attempt" -lt 10 ] || { echo 'mongodb: root user still refuses the index command after 10 tries; inspect the pod logs' >&2; exit 1; }
+  sleep 5
+done
 kubectl rollout status deploy/kafka --timeout=180s
 kubectl exec deploy/kafka -- /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --if-not-exists --topic client-beta --partitions 4 --replication-factor 1 --config retention.ms=86400000 --config retention.bytes=268435456 --config segment.bytes=16777216
 topic=$(kubectl exec deploy/kafka -- /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --describe --topic client-beta)
