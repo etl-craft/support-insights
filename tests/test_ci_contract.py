@@ -40,7 +40,13 @@ class ConfigurationCi(unittest.TestCase):
 
     def test_deploy_runs_the_five_steps_in_order(self):
         deploy = text("deploy.yml")
-        verbs = ["validate", "config apply", "bundle publish", "seed apply", "run --pipeline-code SI_REFERENCE"]
+        verbs = [
+            "bundle publish",
+            "config apply --bundle latest",
+            "validate",
+            "seed apply",
+            "run --pipeline-code SI_REFERENCE",
+        ]
         positions = [deploy.index(f"$cli {verb}") for verb in verbs]
         self.assertEqual(positions, sorted(positions))
 
