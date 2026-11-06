@@ -34,7 +34,7 @@ for package roles; the generator tag is imported into the node. The engine has t
 one required synchronous standby, and a transaction-mode PgBouncer Pooler for the two UI copies.
 The controller and notification listeners connect directly to `engine-rw`.
 
-Pinned package commit: `8a7e67b917d14a413c27d99dfd2ebd4b19ec61c1`, including
+Pinned package commit: `6e6ee0ee36eacb52a0a8ffd59af5c7faf4bf3121`, including
 [#322](https://github.com/etl-craft/etl-craft/pull/322),
 [#323](https://github.com/etl-craft/etl-craft/pull/323),
 [#324](https://github.com/etl-craft/etl-craft/pull/324) and
@@ -276,7 +276,7 @@ docker run --rm --user "$(id -u):$(id -g)" --entrypoint python \
   -v "$(pwd)/tests:/app/tests:ro" \
   -v "$(pwd)/project:/app/project:ro" \
   -v "$(pwd)/reference:/app/reference:ro" \
-  support-insights-generator:8a7e67b917d14a413c27d99dfd2ebd4b19ec61c1 -m unittest discover -s tests
+  support-insights-generator:6e6ee0ee36eacb52a0a8ffd59af5c7faf4bf3121 -m unittest discover -s tests
 ```
 
 For the small live row checks, use unused fixture keys (this validation uses 9000–9002, beyond its random batches). Deliver once after random batch checks, then run each client with
@@ -312,7 +312,7 @@ docker run --rm --network host --entrypoint python \
   -e SI_ORACLE_INPUTS=/app/oracle-inputs.json \
   -v "$(pwd)/.state/oracle-inputs.json:/app/oracle-inputs.json:ro" \
   -v "$(pwd)/tests:/app/tests:ro" -v "$(pwd)/project:/app/project:ro" \
-  support-insights-generator:8a7e67b917d14a413c27d99dfd2ebd4b19ec61c1 \
+  support-insights-generator:6e6ee0ee36eacb52a0a8ffd59af5c7faf4bf3121 \
   -m unittest discover -s tests -p test_pipeline_rows.py
 ```
 
@@ -458,7 +458,7 @@ success alone did not publish the later fixture rows. Reconciliation of that del
 instance removed the final unresolved source ending. Row checks use the subsequent matching
 window, rather than assuming any successful DM run includes the latest source delivery.
 
-Live validation on the merged package commit `8a7e67b917d14a413c27d99dfd2ebd4b19ec61c1`:
+Live validation on the merged package commit `6e6ee0ee36eacb52a0a8ffd59af5c7faf4bf3121`:
 
 | Exact DM run | Result | Source rows / rows written | Admitted low → high (UTC) |
 |---|---|---:|---|
