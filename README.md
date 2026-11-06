@@ -185,6 +185,41 @@ an environment named `production` with required reviewers; in it the secret `ETL
 and a self-hosted runner container in the cluster labelled `support-insights`. Protect `main` so a pull
 request must pass `Validate`. `deploy.yml` has not run yet.
 
+## Views
+
+`SI_VIEWS` creates the two reporting views with `CREATE_VIEW` tasks. It has no schedule: run it once
+after the first cloning cycle has created the mirror tables, and again after changing a view's SELECT
+(publish the bundle and run `pipelines refresh` first so the run pins the new file).
+
+```sh
+etl-craft --api https://craft.localhost:8443 --project support_insights clone   # admin; first time only
+etl-craft --api https://craft.localhost:8443 --project support_insights run --pipeline-code SI_VIEWS
+```
+
+- **`vw.customer_support_fact_view`** reads `dm.customer_support_fact`: `ACTIVE_FLAG = 'Y'` replaces
+  `is_active` and the date range, and `DELETE_FLAG = 'N'` hides retired keys. After the legacy columns it
+  shows the source ODS run and task (`source_pipeline_run_id`, `source_task_run_id`), kept apart from the
+  SI_DM run that published the version (`dm_pipeline_run_id`, `dm_task_run_id`), the steward and upload
+  that corrected the row (`upload_id`, `steward`, `upload_file_name`, from ODS and the mirrored
+  `AUD_UPLOADS`), the last committed SI_DM window (`committed_window_end`, the latest successful
+  `ods_to_dm` task run's `watermark_to`) and `freshness_seconds` since it. Keys with an active REJECT
+  business-rule result in the mirrored `AUD_BUSINESS_RULES_RESULTS` are excluded.
+- **`vw.data_metrics_view`** keeps the legacy columns (`dag_run_id`, `source_name`, `run_start_date`,
+  `batch_count`, `insert_count`, `update_count`, `duplicate_count`, `valid_count`, `data_quality_score`,
+  `run_duration_sec`) over the audit tables that cloning mirrors into `aud_mirror`, one row per successful
+  client run. `batch_count` is the ingestion task's `SOURCE_COUNT`; `insert_count` counts new keys
+  (`INSERT_COUNT - UPDATE_COUNT`) and `update_count` closed versions of the `lnd_to_prs` task;
+  `duplicate_count` is that task's. SI_DM is never a fourth source.
+- **Cloning** is on (`Scope: AUD`, every five minutes) into `aud_mirror`. It works on Trino over Iceberg.
+  Measured here, a table copies at about 17 rows per second (batched `INSERT ... VALUES`), so the first
+  cycle takes about fifteen minutes for this deployment's 62 tables; later cycles replace every row again.
+
+Checked on this deployment: `data_metrics_view` returns 186 rows, and `batch_count`, `insert_count`,
+`update_count` and `duplicate_count` match an independent computation from the Engine DB for every one of
+them; `customer_support_fact_view` returns 5,714 rows, the active `dm.customer_support_fact` count. S8.F's
+reference queries check both views' values against the generators' own records. Trino's Iceberg connector
+refuses a view column of type `timestamp(3)`, so `committed_window_end` is cast to `timestamp(6)`.
+
 ## Source bounds and batches
 
 Each client has a fixed 10,000-business-key space, a 1,000-input-row maximum batch and a

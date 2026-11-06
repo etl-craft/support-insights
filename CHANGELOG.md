@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- Add `SI_VIEWS` with the two `CREATE_VIEW` tasks: the customer support fact view over
+  `dm.customer_support_fact` (active versions, ODS and SI_DM provenance kept apart, steward and upload,
+  last committed window and freshness, rejected keys excluded) and the data metrics view over the audit
+  tables cloned into `aud_mirror`; enable `Cloning` (`Scope: AUD`).
 - Add the configuration CI: `validate.yml` (pull requests, no secrets, a local DuckDB warehouse via
   `ci/validate.sh`) and `deploy.yml` (push to `main`, self-hosted runner, reviewed `production`
   environment, one developer token), with `ci/PACKAGE_COMMIT` as the single package pin for both.

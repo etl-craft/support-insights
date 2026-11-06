@@ -107,3 +107,6 @@ SI_MAINTENANCE,maintain_dm,ETL,SQL_SCRIPT,,,,,,Y,Y
 SI_MAINTENANCE,maintain_dwh,ETL,SQL_SCRIPT,,,,,,Y,Y
 SI_MAINTENANCE,maintain_ds,ETL,SQL_SCRIPT,,,,,,Y,Y
 SI_MAINTENANCE,maintain_info,ETL,SQL_SCRIPT,,,,,,Y,Y
+SI_VIEWS,customer_support_fact_view,ETL,SQL,,,warehouse,vw,customer_support_fact_view,Y,Y
+SI_VIEWS,data_metrics_view,ETL,SQL,,,warehouse,vw,data_metrics_view,Y,Y
+SI_VIEWS,views_failure_alert,ETL,EMAIL_ALERT,ANY,,,,,Y,Y

@@ -30,3 +30,5 @@ warehouse,ds,customer_types,,,,,Y
 warehouse,ds,support_areas,,,,,Y
 warehouse,ds,sources,,,,,Y
 warehouse,info,data_dictionary,,,,,Y
+warehouse,vw,customer_support_fact_view,VIEW,,,,Y
+warehouse,vw,data_metrics_view,VIEW,,,,Y

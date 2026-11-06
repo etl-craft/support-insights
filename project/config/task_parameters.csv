@@ -709,3 +709,20 @@ SI_MAINTENANCE,maintain_info,MEMORY_REQUEST_MB,128,Y
 SI_MAINTENANCE,maintain_info,CPU_REQUEST,1,Y
 SI_CLIENT_ALPHA,alpha_source_to_lnd,SECRETS,MONGO_USER|MONGO_PASSWORD,Y
 SI_CLIENT_GAMMA,gamma_source_to_lnd,SECRETS,MINIO_USER|MINIO_PASSWORD,Y
+SI_VIEWS,customer_support_fact_view,SQL_ACTION,CREATE_VIEW,Y
+SI_VIEWS,customer_support_fact_view,SCRIPT_FILE,sql_scripts/customer_support_fact_view.sql,Y
+SI_VIEWS,customer_support_fact_view,POOL,warehouse,Y
+SI_VIEWS,customer_support_fact_view,MEMORY_REQUEST_MB,128,Y
+SI_VIEWS,customer_support_fact_view,CPU_REQUEST,1,Y
+SI_VIEWS,data_metrics_view,SQL_ACTION,CREATE_VIEW,Y
+SI_VIEWS,data_metrics_view,SCRIPT_FILE,sql_scripts/data_metrics_view.sql,Y
+SI_VIEWS,data_metrics_view,POOL,warehouse,Y
+SI_VIEWS,data_metrics_view,MEMORY_REQUEST_MB,128,Y
+SI_VIEWS,data_metrics_view,CPU_REQUEST,1,Y
+SI_VIEWS,views_failure_alert,EMAIL_TO,support-team@example.test,Y
+SI_VIEWS,views_failure_alert,EMAIL_SUBJECT,$$pipeline_code failed,Y
+SI_VIEWS,views_failure_alert,EMAIL_BODY,Run $$pipeline_run_id failed: $$error_message,Y
+SI_VIEWS,views_failure_alert,EMAIL_ON_STATUS,FAILED,Y
+SI_VIEWS,views_failure_alert,POOL,warehouse,Y
+SI_VIEWS,views_failure_alert,MEMORY_REQUEST_MB,128,Y
+SI_VIEWS,views_failure_alert,CPU_REQUEST,1,Y

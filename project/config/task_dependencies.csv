@@ -106,3 +106,5 @@ SI_STEWARD_BUSINESS,steward_failure_alert,,SI_STEWARD_BUSINESS,steward_preods_to
 SI_STEWARD_BUSINESS,steward_failure_alert,,SI_STEWARD_BUSINESS,steward_preods_to_ods_support_areas,FAILURE,Y,Y
 SI_STEWARD_BUSINESS,steward_failure_alert,,SI_STEWARD_BUSINESS,steward_preods_to_ods_customer_types,FAILURE,Y,Y
 SI_DM,dm_failure_alert,,SI_DM,ods_to_dm,FAILURE,Y,Y
+SI_VIEWS,views_failure_alert,,SI_VIEWS,customer_support_fact_view,FAILURE,Y,Y
+SI_VIEWS,views_failure_alert,,SI_VIEWS,data_metrics_view,FAILURE,Y,Y
