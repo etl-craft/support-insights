@@ -340,8 +340,7 @@ GROUP BY
     object_key,
     etag",Y
 SI_CLIENT_GAMMA,gamma_wait_objects,EVENT_KEY_COLUMN,event_key,Y
-SI_CLIENT_GAMMA,gamma_wait_objects,EVENT_TIMEOUT_MINUTES,55,Y
-SI_CLIENT_GAMMA,gamma_wait_objects,EVENT_ON_TIMEOUT,SKIP,Y
+SI_CLIENT_GAMMA,gamma_wait_objects,EVENT_TIMEOUT_MINUTES,NONE,Y
 SI_CLIENT_GAMMA,gamma_wait_objects,EVENT_MAX_ROWS,10000,Y
 SI_CLIENT_GAMMA,gamma_wait_objects,POOL,warehouse,Y
 SI_CLIENT_GAMMA,gamma_wait_objects,MEMORY_REQUEST_MB,128,Y
@@ -777,7 +776,7 @@ SI_CLIENT_BETA,beta_preods_to_ods_customer_types,DOCUMENTATION,"Merges the rows 
 SI_CLIENT_BETA,beta_failure_alert,DOCUMENTATION,Sends an email to support-team@example.test when the pipeline ends failed; it does nothing otherwise.,Y
 SI_SETUP,setup_lnd_client_gamma_cs_data,DOCUMENTATION,"Creates lnd.client_gamma_cs_data when it does not exist, with the audit columns of APPEND_TABLE; an existing table is left as it is.",Y
 SI_CLIENT_GAMMA,gamma_source_to_lnd,DOCUMENTATION,"Reads new records from minio-gamma.gamma with python_scripts/minio_to_lnd.py publishes them as one landing batch to lnd.client_gamma_cs_data, stamped with this run's PIPELINE_RUN_ID. Credentials come from the secrets MINIO_USER, MINIO_PASSWORD.",Y
-SI_CLIENT_GAMMA,gamma_wait_objects,DOCUMENTATION,"Waits up to 55 minutes for new object events (read with EVENT_SQL, keyed by event_key); when none arrive in time the run is skipped (SKIP).",Y
+SI_CLIENT_GAMMA,gamma_wait_objects,DOCUMENTATION,"Waits, without a time limit, for new object events (read with EVENT_SQL, keyed by event_key). The pipeline has no schedule: when a run ends successfully or is skipped, the controller starts the next run at once.",Y
 SI_SETUP,setup_prs_client_gamma_cs_data,DOCUMENTATION,"Creates prs.client_gamma_cs_data when it does not exist, with the audit columns of SCD2_MERGE; an existing table is left as it is.",Y
 SI_SETUP,setup_cdc_client_gamma_cs_data,DOCUMENTATION,"Creates cdc.client_gamma_cs_data when it does not exist, with the audit columns of OVERWRITE_TABLE; an existing table is left as it is.",Y
 SI_CLIENT_GAMMA,gamma_lnd_to_prs,DOCUMENTATION,"Merges the rows selected from lnd.client_gamma_cs_data into prs.client_gamma_cs_data as history keyed by source_system_identifier: a changed row closes its previous version and opens a new one. Duplicates of a key within one run are resolved by source_timestamp DESC, source_object DESC, source_row DESC.",Y
