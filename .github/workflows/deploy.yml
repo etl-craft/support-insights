@@ -38,5 +38,5 @@ jobs:
           $cli validate
           $cli seed apply
           $cli lineage --refresh
-          $cli generate-docs
+          $cli generate-docs --with-warehouse
           $cli run --pipeline-code SI_REFERENCE

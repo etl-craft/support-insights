@@ -46,7 +46,7 @@ class ConfigurationCi(unittest.TestCase):
             "validate",
             "seed apply",
             "lineage --refresh",
-            "generate-docs",
+            "generate-docs --with-warehouse",
             "run --pipeline-code SI_REFERENCE",
         ]
         positions = [deploy.index(f"$cli {verb}") for verb in verbs]
