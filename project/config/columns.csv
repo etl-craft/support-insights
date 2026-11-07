@@ -195,6 +195,7 @@ warehouse,aud_mirror,aud_cfg_pipelines_history,block_on_refresh_error,VARCHAR,31
 warehouse,aud_mirror,aud_cfg_pipelines_history,calendar_id,BIGINT,32,Y,Y
 warehouse,aud_mirror,aud_cfg_pipelines_history,non_business_day,VARCHAR,33,Y,Y
 warehouse,aud_mirror,aud_cfg_pipelines_history,stewardable_flag,VARCHAR,34,Y,Y
+warehouse,aud_mirror,aud_cfg_pipelines_history,auto_restart_condition,VARCHAR,35,Y,Y
 warehouse,aud_mirror,aud_cfg_tasks_history,change_id,BIGINT,1,Y,Y
 warehouse,aud_mirror,aud_cfg_tasks_history,valid_from,TIMESTAMP(6) WITH TIME ZONE,2,Y,Y
 warehouse,aud_mirror,aud_cfg_tasks_history,valid_to,TIMESTAMP(6) WITH TIME ZONE,3,Y,Y
@@ -247,6 +248,7 @@ warehouse,aud_mirror,aud_pipelines_run_log,metadata_version,VARCHAR,26,Y,Y
 warehouse,aud_mirror,aud_pipelines_run_log,metadata_snapshot,VARCHAR,27,Y,Y
 warehouse,aud_mirror,aud_pipelines_run_log,updated_at,TIMESTAMP(6) WITH TIME ZONE,28,Y,Y
 warehouse,aud_mirror,aud_pipelines_run_log,sla_breached_at,TIMESTAMP(6) WITH TIME ZONE,29,Y,Y
+warehouse,aud_mirror,aud_pipelines_run_log,run_label,VARCHAR,30,Y,Y
 warehouse,aud_mirror,aud_task_run_log,task_run_id,BIGINT,1,Y,Y
 warehouse,aud_mirror,aud_task_run_log,task_id,BIGINT,2,Y,Y
 warehouse,aud_mirror,aud_task_run_log,pipeline_run_id,BIGINT,3,Y,Y
@@ -268,3 +270,4 @@ warehouse,aud_mirror,aud_task_run_log,watermark_to,VARCHAR,18,Y,Y
 warehouse,aud_mirror,aud_task_run_log,trigger_generation,BIGINT,19,Y,Y
 warehouse,aud_mirror,aud_task_run_log,updated_at,TIMESTAMP(6) WITH TIME ZONE,20,Y,Y
 warehouse,aud_mirror,aud_task_run_log,duplicate_count,BIGINT,21,Y,Y
+warehouse,aud_mirror,aud_task_run_log,task_run_label,VARCHAR,22,Y,Y
