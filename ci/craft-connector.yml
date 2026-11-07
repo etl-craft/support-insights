@@ -1,28 +1,31 @@
 # The connector the validate job uses in a scratch copy of project/: a local SQLite Engine DB and
 # an explicit, secretless local DuckDB warehouse. It replaces project/craft-connector.yml only in
 # that copy; no credential, cluster or object store is reachable from it.
+# Every setting is a value (used as written) or a variable (the name of a variable in the secrets
+# source, whose value is read when the file loads); each line below says which. A secret is always a
+# variable, never a value.
 Secrets:
-  Source_type: ENVIRONMENT
+  Source_type: ENVIRONMENT  # value
 Orchestration:
-  Project: support_insights
-  Log_dir: logs
+  Project: support_insights  # value
+  Log_dir: logs  # value
   Email:
-    Host: mailpit
-    Port: 1025
-    From_address: etl-craft@example.test
-    Tls_mode: NONE
+    Host: mailpit  # value
+    Port: 1025  # value
+    From_address: etl-craft@example.test  # value
+    Tls_mode: NONE  # value
 Deployment:
-  Profile: LAPTOP
+  Profile: LAPTOP  # value
 Engine:
   dev:
-    Jdbc_url: jdbc:sqlite:ci-engine.db
-    Schema: main
+    Jdbc_url: jdbc:sqlite:ci-engine.db  # value
+    Schema: main  # value
 Warehouse:
-  Name: duckdb
+  Name: duckdb  # value
   dev:
-    Jdbc_url: jdbc:duckdb:warehouse.duckdb
-    Schema: main
+    Jdbc_url: jdbc:duckdb:warehouse.duckdb  # value
+    Schema: main  # value
 Artifacts:
-  Store: file://__BUNDLES__
+  Store: file://__BUNDLES__  # value
 Privacy:
-  Hmac_secret: PRIVACY_HMAC
+  Hmac_secret: PRIVACY_HMAC  # variable

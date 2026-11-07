@@ -34,7 +34,7 @@ for package roles; the generator tag is imported into the node. The engine has t
 one required synchronous standby, and a transaction-mode PgBouncer Pooler for the two UI copies.
 The controller and notification listeners connect directly to `engine-rw`.
 
-Pinned package commit: `d918ef1d7a15ef8620315f419765fdce737c8c0f`, including
+Pinned package commit: `10f4aa8c57d0a8085bb3a5ef1d79cded004d6137`, including
 [#322](https://github.com/etl-craft/etl-craft/pull/322),
 [#323](https://github.com/etl-craft/etl-craft/pull/323),
 [#324](https://github.com/etl-craft/etl-craft/pull/324) and
@@ -144,7 +144,7 @@ kubectl exec craft-admin -- etl-craft bundle publish --project-dir /project
 etl-craft --api http://localhost:8080 --project support_insights run \
   --pipeline-code SI_REFERENCE --init-only --run-key bootstrap-reference
 # Wait for this exact SI_REFERENCE run to end SUCCESS before enabling schedules.
-sed -i 's/Allow_schedule: false/Allow_schedule: true/' .state/engine.yml .state/ui.yml
+sed -i 's/Allowed_auto_restarts: NONE/Allowed_auto_restarts: SCHEDULE|ALWAYS/' .state/engine.yml .state/ui.yml
 kubectl create configmap etl-craft-config --from-file=engine.yml=.state/engine.yml \
   --from-file=ui.yml=.state/ui.yml --from-file=agent.yml=.state/agent.yml \
   --from-literal=api-url=https://traefik.kube-system.svc --dry-run=client -o yaml | kubectl apply -f -
@@ -286,7 +286,7 @@ docker run --rm --user "$(id -u):$(id -g)" --entrypoint python \
   -v "$(pwd)/tests:/app/tests:ro" \
   -v "$(pwd)/project:/app/project:ro" \
   -v "$(pwd)/reference:/app/reference:ro" \
-  support-insights-generator:d918ef1d7a15ef8620315f419765fdce737c8c0f -m unittest discover -s tests
+  support-insights-generator:10f4aa8c57d0a8085bb3a5ef1d79cded004d6137 -m unittest discover -s tests
 ```
 
 For the small live row checks, use unused fixture keys (this validation uses 9000–9002, beyond its random batches). Deliver once after random batch checks, then run each client with
@@ -322,7 +322,7 @@ docker run --rm --network host --entrypoint python \
   -e SI_ORACLE_INPUTS=/app/oracle-inputs.json \
   -v "$(pwd)/.state/oracle-inputs.json:/app/oracle-inputs.json:ro" \
   -v "$(pwd)/tests:/app/tests:ro" -v "$(pwd)/project:/app/project:ro" \
-  support-insights-generator:d918ef1d7a15ef8620315f419765fdce737c8c0f \
+  support-insights-generator:10f4aa8c57d0a8085bb3a5ef1d79cded004d6137 \
   -m unittest discover -s tests -p test_pipeline_rows.py
 ```
 
@@ -468,7 +468,7 @@ success alone did not publish the later fixture rows. Reconciliation of that del
 instance removed the final unresolved source ending. Row checks use the subsequent matching
 window, rather than assuming any successful DM run includes the latest source delivery.
 
-Live validation on the merged package commit `d918ef1d7a15ef8620315f419765fdce737c8c0f`:
+Live validation on the merged package commit `10f4aa8c57d0a8085bb3a5ef1d79cded004d6137`:
 
 | Exact DM run | Result | Source rows / rows written | Admitted low → high (UTC) |
 |---|---|---:|---|

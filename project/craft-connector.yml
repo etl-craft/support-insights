@@ -1,60 +1,63 @@
+# Every setting is a value (used as written) or a variable (the name of a variable in the secrets
+# source, whose value is read when the file loads); each line below says which. A secret is always a
+# variable, never a value.
 Secrets:
-  Source_type: ENVIRONMENT
+  Source_type: ENVIRONMENT  # value
 Orchestration:
-  Project: support_insights
-  Api_address: 0.0.0.0:8730
-  Log_dir: /state/logs
+  Project: support_insights  # value
+  Api_address: 0.0.0.0:8730  # value
+  Log_dir: /state/logs  # value
   Email:
-    Host: mailpit
-    Port: 1025
-    From_address: etl-craft@example.test
-    Tls_mode: NONE
+    Host: mailpit  # value
+    Port: 1025  # value
+    From_address: etl-craft@example.test  # value
+    Tls_mode: NONE  # value
 Deployment:
-  Profile: CONTROLLER_AGENTS
+  Profile: CONTROLLER_AGENTS  # value
 Engine:
   dev:
-    Jdbc_url: ENGINE_JDBC_URL
-    Listen_jdbc_url: jdbc:postgresql://engine-rw:5432/etl_craft
-    User: etl_craft
-    Auth_mode: PASSWORD
-    Secret: ENGINE_PASSWORD
-    Schema: etl_craft
+    Jdbc_url: ENGINE_JDBC_URL  # variable
+    Listen_jdbc_url: jdbc:postgresql://engine-rw:5432/etl_craft  # value
+    User: etl_craft  # value
+    Auth_mode: PASSWORD  # value
+    Secret: ENGINE_PASSWORD  # variable
+    Schema: etl_craft  # value
 Warehouse:
-  Name: Trino
-  Table_format: ICEBERG
+  Name: Trino  # value
+  Table_format: ICEBERG  # value
   dev:
-    Jdbc_url: jdbc:trino://trino:8080/warehouse/aud_mirror
-    Schema: aud_mirror
-    User: etl_craft
-    Auth_mode: NONE
+    Jdbc_url: jdbc:trino://trino:8080/warehouse/aud_mirror  # value
+    Schema: aud_mirror  # value
+    User: etl_craft  # value
+    Auth_mode: NONE  # value
 Cloning:
-  Every_minutes: 5
+  Every_minutes: 5  # value
   dev:
-    Enabled: true
-    Scope: AUD
+    Enabled: true  # value
+    Scope: AUD  # value
 Docs_site:
   Trusted_proxies:
-  - 10.42.0.0/16
+  - 10.42.0.0/16  # value
 Object_stores:
   lake:
-    Endpoint: http://minio-lake:9000
-    Region: us-east-1
-    Url_style: PATH
-    Auth_mode: KEYS
-    Access_key_id: LAKE_ACCESS_KEY
-    Secret_access_key: LAKE_SECRET_KEY
+    Endpoint: http://minio-lake:9000  # value
+    Region: us-east-1  # value
+    Url_style: PATH  # value
+    Auth_mode: KEYS  # value
+    Access_key_id: LAKE_ACCESS_KEY  # variable
+    Secret_access_key: LAKE_SECRET_KEY  # variable
 Artifacts:
-  Store: s3://bundles/support-insights
-  Profile: lake
+  Store: s3://bundles/support-insights  # value
+  Profile: lake  # value
 Logs:
-  Store: s3://logs/support-insights
-  Profile: lake
+  Store: s3://logs/support-insights  # value
+  Profile: lake  # value
 Retention:
-  Run_history_days: 7
-  Attempt_log_days: 2
-  Consumption_days: 7
-  Interventions_days: 30
-  Config_history_days: 30
-  Daily_at: 03:00
+  Run_history_days: 7  # value
+  Attempt_log_days: 2  # value
+  Consumption_days: 7  # value
+  Interventions_days: 30  # value
+  Config_history_days: 30  # value
+  Daily_at: 03:00  # value
 Privacy:
-  Hmac_secret: PRIVACY_HMAC
+  Hmac_secret: PRIVACY_HMAC  # variable
