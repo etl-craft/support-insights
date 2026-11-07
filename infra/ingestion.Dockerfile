@@ -3,5 +3,5 @@ FROM ghcr.io/astral-sh/uv:0.12.17@sha256:10787c682e4184e4f290de1171fd4703dc63de9
 FROM ${PROJECT_IMAGE}
 USER root
 COPY --from=uv /uv /tmp/uv
-RUN /tmp/uv pip install --python /opt/etl-craft/bin/python --no-cache --compile-bytecode pymongo==4.15.5 confluent-kafka==2.12.2 && rm /tmp/uv
+RUN /tmp/uv pip install --python /opt/etl-craft/bin/python --no-cache --compile-bytecode pymongo==4.18.3 confluent-kafka==2.12.2 && rm /tmp/uv
 USER 10001
