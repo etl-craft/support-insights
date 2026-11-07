@@ -1,11 +1,9 @@
-# Pull requests that change the project: validate it with no secrets and no cluster.
+# Every pull request: validate the project with no secrets and no cluster. It has no path filter
+# because the main ruleset requires this check, and a required check that does not run blocks the
+# merge of a change outside project/.
 name: Validate
 on:
   pull_request:
-    paths:
-      - "project/**"
-      - "ci/**"
-      - ".github/workflows/validate.yml"
 permissions:
   contents: read
 concurrency:
