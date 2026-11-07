@@ -51,8 +51,8 @@ for deployment in $processes; do kubectl scale "$deployment" --replicas=0; done
 kubectl delete pod craft-admin --ignore-not-found
 kubectl apply -f infra/bootstrap/admin.yml
 kubectl wait --for=condition=Ready pod/craft-admin --timeout=300s
-kubectl exec -i craft-admin -- etl-craft login --name admin --password-stdin < .state/admin-password
 kubectl exec craft-admin -- etl-craft migrate
+kubectl exec -i craft-admin -- etl-craft login --name admin --password-stdin < .state/admin-password
 kubectl apply -k infra/kubernetes
 for deployment in $processes; do kubectl rollout restart "$deployment"; done
 for deployment in $(kubectl get deployment -o name); do
