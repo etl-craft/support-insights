@@ -4,7 +4,8 @@
 # project image, the images are re-imported under their pinned tags, and the deployments that run
 # them restart. The Engine DB and every token are kept.
 #   sh infra/bootstrap/update.sh [PACKAGE_CHECKOUT]      (default: $ETL_CRAFT_SRC, else ../etl-craft)
-# This is a development loop. The images keep their pinned tag but no longer match that commit;
+# It stops the etl-craft processes while it migrates the Engine DB, so runs in flight are lost
+# (recoverable). This is a development loop. The images keep their pinned tag but no longer match that commit;
 # build.sh with a new pin (or the S8.E candidate images) is the way to release.
 set -eu
 src=${1:-${ETL_CRAFT_SRC:-../etl-craft}}
@@ -43,12 +44,18 @@ docker build -f infra/ingestion.Dockerfile --build-arg "PROJECT_IMAGE=$base" \
   -t "support-insights-ingestion:$commit" .
 docker rmi "support-insights-project:before-update" > /dev/null
 k3d image import --mode direct -c support-insights "$base" "support-insights-ingestion:$commit"
-kubectl get deployment -o jsonpath='{range .items[*]}{.metadata.name}{" "}{.spec.template.spec.containers[*].image}{"\n"}{end}' |
-  awk '/support-insights-(project|ingestion)/ {print "deployment/" $1}' |
-  while read -r deployment; do
-    kubectl rollout restart "$deployment"
-  done
+# The new package refuses an Engine DB it has not migrated, and a migration cannot take its locks
+# while the controller, UI and agents hold them: stop them, migrate from a fresh admin pod, restart.
+processes=$(kubectl get deployment -o name | grep -E 'etl-craft-|agent-')
+for deployment in $processes; do kubectl scale "$deployment" --replicas=0; done
+kubectl delete pod craft-admin --ignore-not-found
+kubectl apply -f infra/bootstrap/admin.yml
+kubectl wait --for=condition=Ready pod/craft-admin --timeout=300s
+kubectl exec -i craft-admin -- etl-craft login --name admin --password-stdin < .state/admin-password
+kubectl exec craft-admin -- etl-craft migrate
+kubectl apply -k infra/kubernetes
+for deployment in $processes; do kubectl rollout restart "$deployment"; done
 for deployment in $(kubectl get deployment -o name); do
   kubectl rollout status "$deployment" --timeout=300s
 done
-echo "etl-craft from $src ($revision) is running; craft-admin, if it exists, still runs the old package: delete and re-apply it"
+echo "etl-craft from $src ($revision) is running, the Engine DB is migrated and craft-admin runs it"

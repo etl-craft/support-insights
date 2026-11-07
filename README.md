@@ -112,10 +112,9 @@ Production separates the warehouse from the Engine DB and supplies managed crede
 
 `infra/bootstrap/update.sh [CHECKOUT]` re-installs the etl-craft package from a local checkout
 (default `../etl-craft`) on top of the pinned project image, re-imports the images under their pinned
-tags and restarts the deployments that run them. It takes under two minutes and keeps the cluster,
-the Engine DB and every token. The images no longer match their pinned commit afterwards, so it is a
-development loop: release with a new pin and `build.sh`. `craft-admin`, if it exists, keeps the old
-package until it is deleted and applied again.
+tags, stops the etl-craft processes, migrates the Engine DB from a fresh admin pod and restarts them. It
+keeps the cluster, the Engine DB and every token; runs in flight are lost (they can be recovered). The images no longer match their pinned commit afterwards, so it is a
+development loop: release with a new pin and `build.sh`.
 
 ## Bootstrap the project
 
