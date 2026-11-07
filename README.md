@@ -183,8 +183,8 @@ requests; access grants use the package's admin commands outside config CI; reti
   scratch folder, `ETL_CRAFT_WHEEL=path` skips the build).
 - **`deploy.yml`** runs on a push to `main` that touches `project/`, on the self-hosted runner in the demo
   cluster (label `support-insights`), in the GitHub environment `production`. It installs the same pinned
-  command line and runs `bundle publish`, `config apply --bundle latest`, `validate`, `seed apply` and
-  `run` of `SI_REFERENCE`, all with `--api`; the first bundle publish of a project must be an admin's, which
+  command line and runs `bundle publish`, `config apply --bundle latest`, `validate`, `seed apply`,
+  `lineage --refresh`, `generate-docs` (so the catalog is built and current) and `run` of `SI_REFERENCE`, all with `--api`; the first bundle publish of a project must be an admin's, which
   approves its connection contract. It holds one developer token and no Engine DB or artifact-store
   credential, and no workflow on that runner runs on `pull_request`.
 - **`ci/PACKAGE_COMMIT`** is the one package commit both workflows install; it needs `login
