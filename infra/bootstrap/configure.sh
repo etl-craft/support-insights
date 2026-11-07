@@ -16,7 +16,7 @@ fi
 kubectl create secret generic etl-craft-engine --from-env-file=.state/engine.env --dry-run=client -o yaml | kubectl apply -f -
 sed 's/Source_type: ENVIRONMENT/Source_type: FILE\n  Path: \/secrets\/provider.env/' project/craft-connector.yml |
   sed '/^Orchestration:$/a\
-  Allow_schedule: false' > .state/engine.yml
+  Allowed_auto_restarts: NONE  # value' > .state/engine.yml
 # UI uses transaction pooling for ordinary work; LISTEN stays on the direct service.
 sed 's/Jdbc_url: ENGINE_JDBC_URL/Jdbc_url: jdbc:postgresql:\/\/engine-ui:5432\/etl_craft/' .state/engine.yml > .state/ui.yml
 cat > .state/agent.yml <<'EOF'
