@@ -29,7 +29,7 @@ jobs:
       - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
       - name: Install the pinned etl-craft command line
         run: ci/install.sh "$RUNNER_TEMP/etl-craft"
-      - name: Publish, apply, validate, seed and run the reference pipeline
+      - name: Publish, apply, validate, seed, rebuild the catalog and run the reference pipeline
         run: |
           PATH="$RUNNER_TEMP/etl-craft/venv/bin:$PATH"
           cli="etl-craft --api $ETL_CRAFT_API --project support_insights --yes"
@@ -37,4 +37,6 @@ jobs:
           $cli config apply --bundle latest
           $cli validate
           $cli seed apply
+          $cli lineage --refresh
+          $cli generate-docs
           $cli run --pipeline-code SI_REFERENCE

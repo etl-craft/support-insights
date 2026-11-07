@@ -38,13 +38,15 @@ class ConfigurationCi(unittest.TestCase):
         used = set(re.findall(r"secrets\.([A-Z_]+)", text("deploy.yml")))
         self.assertEqual(used, {"ETL_CRAFT_DEVELOPER_TOKEN"})
 
-    def test_deploy_runs_the_five_steps_in_order(self):
+    def test_deploy_runs_its_steps_in_order(self):
         deploy = text("deploy.yml")
         verbs = [
             "bundle publish",
             "config apply --bundle latest",
             "validate",
             "seed apply",
+            "lineage --refresh",
+            "generate-docs",
             "run --pipeline-code SI_REFERENCE",
         ]
         positions = [deploy.index(f"$cli {verb}") for verb in verbs]
