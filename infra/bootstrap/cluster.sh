@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 k3d cluster create support-insights --image rancher/k3s:v1.35.5-k3s1 \
-  --servers 1 --agents 0 --port '127.0.0.1:8080:80@loadbalancer' --port '127.0.0.1:8443:443@loadbalancer' \
+  --servers 1 --agents 0 --port '127.0.0.1:8080:80@loadbalancer' \
   --volume "$(pwd)/infra/kubernetes/kubelet.conf:/var/lib/rancher/k3s/agent/etc/kubelet.conf.d/90-swap.conf@server:*" \
   --wait --timeout 120s
 kubectl apply --dry-run=server -f infra/kubernetes/system-resources.yml

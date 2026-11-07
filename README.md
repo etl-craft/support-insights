@@ -100,9 +100,11 @@ and nine warehouse agents expose one warehouse slot, each with a 256 MiB limit. 
 explicit Python slot override preserves CPU, total-slot and measured process-floor guards;
 The ingestion tasks declare `MEMORY_REQUEST_MB` within those agents’ capacity.
 
-Open [the UI](https://craft.localhost:8443), [generators](http://generator.localhost:8080)
-and [Mailpit](http://mail.localhost:8080). The local TLS certificate is in `.state/tls.crt`;
-trust it explicitly for this demo. Agents trust it through a ConfigMap and use the TLS ingress.
+Open [the UI](http://localhost:8080/ui), [generators](http://generator.localhost:8080)
+and [Mailpit](http://mail.localhost:8080). The UI and the command line use plain HTTP on this
+machine, like `etl-craft ui` (`http://localhost:8730`); a browser and the CLI accept HTTP to `localhost`
+only. The agents inside the cluster reach the controller over TLS with the demo CA (`.state/tls.crt`,
+mounted by a ConfigMap); nothing on your machine needs to trust it.
 All host ports bind to loopback. Credentials in service manifests are local demo credentials.
 Production separates the warehouse from the Engine DB and supplies managed credentials/TLS.
 
@@ -118,7 +120,7 @@ rm .state/bootstrap-config/columns.csv
 kubectl cp .state/bootstrap-config craft-admin:/tmp/bootstrap-config
 kubectl exec craft-admin -- etl-craft config apply --config-dir /tmp/bootstrap-config
 kubectl exec craft-admin -- etl-craft bundle publish --project-dir /project
-etl-craft --api https://craft.localhost:8443 --project support_insights run \
+etl-craft --api http://localhost:8080 --project support_insights run \
   --pipeline-code SI_SETUP --init-only --run-key bootstrap-setup
 ```
 
@@ -130,7 +132,7 @@ kubectl exec craft-admin -- etl-craft seed apply
 kubectl cp project/config craft-admin:/tmp/full-config
 kubectl exec craft-admin -- etl-craft config apply --config-dir /tmp/full-config
 kubectl exec craft-admin -- etl-craft bundle publish --project-dir /project
-etl-craft --api https://craft.localhost:8443 --project support_insights run \
+etl-craft --api http://localhost:8080 --project support_insights run \
   --pipeline-code SI_REFERENCE --init-only --run-key bootstrap-reference
 # Wait for this exact SI_REFERENCE run to end SUCCESS before enabling schedules.
 sed -i 's/Allow_schedule: false/Allow_schedule: true/' .state/engine.yml .state/ui.yml
@@ -142,11 +144,10 @@ kubectl exec craft-admin -- etl-craft logout
 kubectl delete pod craft-admin
 ```
 
-Use the enrolled host token and demo TLS CA for host API commands:
+Use the enrolled host token for host API commands:
 
 ```sh
 export ETL_CRAFT_TOKEN="$(cat .state/host-token)"
-export SSL_CERT_FILE="$(pwd)/.state/tls.crt"
 ```
 
  Source credentials live
@@ -193,8 +194,8 @@ after the first cloning cycle has created the mirror tables, and again after cha
 (publish the bundle and run `pipelines refresh` first so the run pins the new file).
 
 ```sh
-etl-craft --api https://craft.localhost:8443 --project support_insights clone   # admin; first time only
-etl-craft --api https://craft.localhost:8443 --project support_insights run --pipeline-code SI_VIEWS
+etl-craft --api http://localhost:8080 --project support_insights clone   # admin; first time only
+etl-craft --api http://localhost:8080 --project support_insights run --pipeline-code SI_VIEWS
 ```
 
 - **`vw.customer_support_fact_view`** reads `dm.customer_support_fact`: `ACTIVE_FLAG = 'Y'` replaces
@@ -488,19 +489,19 @@ The four steward pipelines are unscheduled and require an uploaded CSV. Use the 
 admin token to create USER accounts and grant access, then sign in separately for each user:
 
 ```sh
-etl-craft --api https://craft.localhost:8443 --project support_insights account add \
+etl-craft --api http://localhost:8080 --project support_insights account add \
   --name demo-steward-a --kind USER --role viewer
-etl-craft --api https://craft.localhost:8443 --project support_insights access grant \
+etl-craft --api http://localhost:8080 --project support_insights access grant \
   --account demo-steward-a --permission CAN_VIEW --reason 'Demo project discovery'
 for pipeline in SI_STEWARD_DS_AGENTS SI_STEWARD_DS_CUSTOMER_TYPES \
   SI_STEWARD_DS_SUPPORT_AREAS SI_STEWARD_BUSINESS; do
-  etl-craft --api https://craft.localhost:8443 --project support_insights access grant \
+  etl-craft --api http://localhost:8080 --project support_insights access grant \
     --account demo-steward-a --pipeline "$pipeline" --permission CAN_UPLOAD \
     --reason 'Demo steward uploads'
 done
 # Repeat for demo-steward-b. Record the chosen passwords in .env.demo-users (0600).
 env -u ETL_CRAFT_TOKEN XDG_CONFIG_HOME="$PWD/.state/steward-a-config" \
-  etl-craft --api https://craft.localhost:8443 --project support_insights login
+  etl-craft --api http://localhost:8080 --project support_insights login
 ```
 
 The USER session must be used without the admin service token in the environment. Service
@@ -514,7 +515,7 @@ correct the existing Alpha and Beta key 9000, preserving source identities:
 
 ```sh
 env -u ETL_CRAFT_TOKEN XDG_CONFIG_HOME="$PWD/.state/steward-a-config" \
-  etl-craft --api https://craft.localhost:8443 --project support_insights upload \
+  etl-craft --api http://localhost:8080 --project support_insights upload \
     --pipeline-code SI_STEWARD_BUSINESS tests/fixtures/steward/business-a.csv --format json
 ```
 

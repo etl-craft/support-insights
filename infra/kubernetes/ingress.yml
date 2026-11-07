@@ -5,6 +5,16 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
+  - host: localhost
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: etl-craft-ui
+            port:
+              number: 8730
   - host: craft.localhost
     http:
       paths:
@@ -48,5 +58,4 @@ spec:
   tls:
   - secretName: craft-tls
     hosts:
-    - craft.localhost
     - traefik.kube-system.svc
