@@ -780,25 +780,25 @@ async def history_handler(request: web.Request) -> web.Response:
 
 
 async def log_handler(request: web.Request) -> web.Response:
-    """Serve a log file from the logs directory as an attachment."""
-    file_path = request.query.get("file")
-    if (not file_path or not file_path.startswith(LOG_DIR)
-            or not os.path.exists(file_path)):
-        raise web.HTTPNotFound(text="Log file not found or invalid path")
+    """Serve one log file of the logs directory as an attachment.
+
+    The request names a file; only its base name is used, so no path leaves the directory.
+    """
+    name = os.path.basename(request.query.get("file", ""))
+    root = os.path.realpath(LOG_DIR)
+    file_path = os.path.realpath(os.path.join(root, name))
+    if not name or not file_path.startswith(root + os.sep) or not os.path.isfile(file_path):
+        raise web.HTTPNotFound(text="Log file not found")
     try:
-        resp = web.FileResponse(
+        return web.FileResponse(
             path=file_path,
-            headers={
-                "Content-Disposition":
-                f"attachment; filename={os.path.basename(file_path)}"
-            },
+            headers={"Content-Disposition": f'attachment; filename="{name}"'},
         )
-        return resp
-    except Exception as e:
+    except Exception as e:  # a process boundary: record the cause, answer without it
         SCRIPT_LOGGER.error("Error serving log %s: %s\n%s", file_path, str(e),
                             traceback.format_exc())
         raise web.HTTPInternalServerError(
-            text=f"Error serving log file: {str(e)}")
+            text="Error serving the log file; the orchestrator log has the cause")
 
 
 async def status_handler(request: web.Request) -> web.Response:

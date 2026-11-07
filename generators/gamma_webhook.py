@@ -1,5 +1,6 @@
 """Authenticated MinIO signal delivery; retries use durable event receipts."""
 
+import logging
 import asyncio
 import hmac
 import json
@@ -10,6 +11,8 @@ from urllib.parse import unquote_plus
 
 import trino
 from aiohttp import web
+
+LOGGER = logging.getLogger(__name__)
 
 
 def deliver(records):
@@ -96,7 +99,9 @@ async def receive(request):
         records = payload["Records"]
         await asyncio.to_thread(deliver, records)
     except (KeyError, TypeError, ValueError) as exc:
+        LOGGER.warning("invalid MinIO event (%s): %r", type(exc).__name__, exc)
         raise web.HTTPBadRequest(
-            text=f"Invalid MinIO event: {exc}; expected Records with key, eTag, size and eventTime; fix notification payload"
+            text="Invalid MinIO event; expected Records with key, eTag, size and eventTime; "
+            "fix notification payload"
         ) from exc
     return web.json_response({"accepted": len(records)})
