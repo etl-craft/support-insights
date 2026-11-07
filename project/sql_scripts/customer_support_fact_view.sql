@@ -70,4 +70,3 @@ WHERE
     f.active_flag = 'Y'
     AND f.delete_flag = 'N'
     AND x.source_id IS NULL
--- first deploy
