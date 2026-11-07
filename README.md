@@ -108,6 +108,15 @@ mounted by a ConfigMap); nothing on your machine needs to trust it.
 All host ports bind to loopback. Credentials in service manifests are local demo credentials.
 Production separates the warehouse from the Engine DB and supplies managed credentials/TLS.
 
+## Try a package change without rebuilding
+
+`infra/bootstrap/update.sh [CHECKOUT]` re-installs the etl-craft package from a local checkout
+(default `../etl-craft`) on top of the pinned project image, re-imports the images under their pinned
+tags and restarts the deployments that run them. It takes under two minutes and keeps the cluster,
+the Engine DB and every token. The images no longer match their pinned commit afterwards, so it is a
+development loop: release with a new pin and `build.sh`. `craft-admin`, if it exists, keeps the old
+package until it is deleted and applied again.
+
 ## Bootstrap the project
 
 Keep schedules disabled while installing a fresh project. Apply config without physical
