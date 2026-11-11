@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- Dex browser sign-in uses the public PKCE client and `/ui/signin/callback`, alongside the
+  existing CLI device callback. Bootstrap configures a persistent state-signing secret through
+  the existing secret source, a public UI URL, and shared Dex/UI ingress; Google keeps its
+  existing Dex callback. Local test credentials stay in ignored mode-0600 storage.
+
 - Add `SI_VIEWS` with the two `CREATE_VIEW` tasks: the customer support fact view over
   `dm.customer_support_fact` (active versions, ODS and SI_DM provenance kept apart, steward and upload,
   last committed window and freshness, rejected keys excluded) and the data metrics view over the audit

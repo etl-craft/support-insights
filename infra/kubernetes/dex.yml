@@ -1,4 +1,4 @@
-# Dex is the demo's OIDC issuer: etl-craft signs people in through its device flow, and Dex
+# Dex is the demo's OIDC issuer: etl-craft signs people in through browser PKCE or its CLI device flow, and Dex
 # authenticates them with Google (when infra/bootstrap/sso.sh was given Google credentials) or with
 # the local test user. The ConfigMap dex-config and Secret dex-secrets come from that script.
 apiVersion: apps/v1
