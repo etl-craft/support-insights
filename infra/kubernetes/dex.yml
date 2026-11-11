@@ -1,0 +1,55 @@
+# Dex is the demo's OIDC issuer: etl-craft signs people in through browser PKCE or its CLI device flow, and Dex
+# authenticates them with Google (when infra/bootstrap/sso.sh was given Google credentials) or with
+# the local test user. The ConfigMap dex-config and Secret dex-secrets come from that script.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dex
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dex
+  template:
+    metadata:
+      labels:
+        app: dex
+    spec:
+      containers:
+      - name: dex
+        image: ghcr.io/dexidp/dex:v2.41.1
+        args: [dex, serve, /etc/dex/config.yaml]
+        envFrom:
+        - secretRef:
+            name: dex-secrets
+        resources:
+          requests:
+            cpu: 20m
+            memory: 32Mi
+          limits:
+            cpu: 500m
+            memory: 128Mi
+        ports:
+        - containerPort: 5556
+        volumeMounts:
+        - name: config
+          mountPath: /etc/dex
+        - name: data
+          mountPath: /data
+      volumes:
+      - name: config
+        configMap:
+          name: dex-config
+      - name: data
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dex
+spec:
+  selector:
+    app: dex
+  ports:
+  - name: http
+    port: 5556

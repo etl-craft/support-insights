@@ -601,3 +601,20 @@ completed all nine tasks on their first attempts (96 explicit statements), with 
 writer, unchanged selected row identities/hashes and Gamma run 157's original wait budget
 preserved. The temporary holds and definition pauses were released afterward. Validation
 checked all 11 pipelines and 108 tasks with zero failures/warnings.
+
+## Browser single sign-on
+
+After installing a package with browser-redirect SSO support, run
+`sh infra/bootstrap/sso.sh` using the HTTPS origin stored in `.state/sso-domain.txt`
+(or pass that origin once). The script registers the public Dex client's browser callback
+at `<origin>/ui/signin/callback`, keeps `/device/callback` for CLI login, and routes `/dex`
+to Dex and the rest to the UI through one public ingress. Forward the existing tunnel to
+that ingress, rather than directly to Dex. Dex's Google callback remains `<origin>/dex/callback`.
+
+The script generates `.state/browser-state-secret` once, adds `BROWSER_STATE_SECRET` to the
+existing secret sources, and configures `Auth.Browser_state_secret` as that variable name in
+`.state/ui.yml`. The existing `Docs_site.External_url` carries the same public origin.
+No secret value goes into YAML or Git. Local test-user credentials are kept in ignored
+`.env.demo-users` with mode 0600. Click **Sign in with SSO**, select the local test user or
+Google, and return directly to the app; CLI device login still uses its approval code.
+Google may require the owner's interactive login when automation is refused.
