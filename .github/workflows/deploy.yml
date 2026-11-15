@@ -1,13 +1,15 @@
-# Pushes to main that change the project: apply it to the running deployment. It runs only on the
+# Project or deployment-workflow changes on main apply to the running deployment. It runs on the
 # self-hosted runner in the demo cluster, only after a required reviewer approves the
 # `production` environment, and holds one developer token: no Engine DB or artifact-store
 # credential. Nothing on that runner runs on pull_request.
 name: Deploy
 on:
+  workflow_dispatch:
   push:
     branches: [main]
     paths:
       - "project/**"
+      - ".github/workflows/deploy.yml"
 permissions:
   contents: read
 concurrency:

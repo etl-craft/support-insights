@@ -180,7 +180,8 @@ requests; access grants use the package's admin commands outside config CI; reti
   are validated from the published bundle against the DuckDB warehouse, so publishing precedes `validate`.
   Run it on any machine with `uv` and Git: `ci/validate.sh` (about 30 seconds; `SI_CI_WORK=dir` keeps the
   scratch folder, `ETL_CRAFT_WHEEL=path` skips the build).
-- **`deploy.yml`** runs on a push to `main` that touches `project/`, on the self-hosted runner in the demo
+- **`deploy.yml`** runs on a push to `main` that touches `project/` or the deploy workflow itself, or
+  manually through **Run workflow**, on the self-hosted runner in the demo
   cluster (label `support-insights`), in the GitHub environment `production`. It installs the same pinned
   command line and runs `bundle publish`, `config apply --bundle latest`, `validate`, `seed apply`,
   `lineage --refresh`, `generate-docs --with-warehouse` (so the catalog is built, current and compared with the warehouse) and `run` of `SI_REFERENCE`, all with `--api`; the first bundle publish of a project must be an admin's, which
