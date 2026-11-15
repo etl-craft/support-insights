@@ -271,6 +271,14 @@ recorded in `AUD_EVENT_KEYS` for the event task. S8.F/H extend this to a new ETa
 Package probes already confirm identical rows deduplicate to one recorded key without GROUP BY;
 conflicting payloads fail naming the key, expected single payload and remedy.
 
+The `aud_mirror.aud_uploads` source contract includes the mirrored upload identifier, account
+and file name used by the fact view. The `ds.sources` reference contract and current pipeline-audit
+full-refresh columns are declared too, so the views can be traced in an offline catalog build.
+`info.data_dictionary` has an explicit source schema for its reference loads. The seven Python
+ingestion tasks declare their real MongoDB, Kafka, object-store or accepted-upload source and
+field mappings with `LINEAGE_SOURCE`/`LINEAGE_COLUMNS`; these are documentation, not engine-verified
+Python lineage. Alerts, validation tasks and unmanaged maintenance SQL have no data lineage.
+
 ## Local checks
 
 The generator image carries its pinned dependencies. Run its tests without installing

@@ -271,3 +271,39 @@ warehouse,aud_mirror,aud_task_run_log,trigger_generation,BIGINT,19,Y,Y
 warehouse,aud_mirror,aud_task_run_log,updated_at,TIMESTAMP(6) WITH TIME ZONE,20,Y,Y
 warehouse,aud_mirror,aud_task_run_log,duplicate_count,BIGINT,21,Y,Y
 warehouse,aud_mirror,aud_task_run_log,task_run_label,VARCHAR,22,Y,Y
+warehouse,aud_mirror,aud_uploads,upload_id,BIGINT,1,Y,Y
+warehouse,aud_mirror,aud_uploads,pipeline_id,BIGINT,2,Y,Y
+warehouse,aud_mirror,aud_uploads,account,VARCHAR,3,Y,Y
+warehouse,aud_mirror,aud_uploads,file_name,VARCHAR,4,Y,Y
+warehouse,aud_mirror,aud_uploads,stored_name,VARCHAR,5,Y,Y
+warehouse,aud_mirror,aud_uploads,archive_location,VARCHAR,6,Y,Y
+warehouse,aud_mirror,aud_uploads,archived_at,TIMESTAMP(6) WITH TIME ZONE,7,Y,Y
+warehouse,aud_mirror,aud_uploads,sha256,VARCHAR,8,Y,Y
+warehouse,aud_mirror,aud_uploads,size_bytes,BIGINT,9,Y,Y
+warehouse,aud_mirror,aud_uploads,pipeline_run_id,BIGINT,10,Y,Y
+warehouse,aud_mirror,aud_uploads,status,VARCHAR,11,Y,Y
+warehouse,aud_mirror,aud_uploads,reason,VARCHAR,12,Y,Y
+warehouse,aud_mirror,aud_uploads,uploaded_at,TIMESTAMP(6) WITH TIME ZONE,13,Y,Y
+warehouse,aud_mirror,aud_uploads,taken_at,TIMESTAMP(6) WITH TIME ZONE,14,Y,Y
+warehouse,aud_mirror,aud_uploads,ended_at,TIMESTAMP(6) WITH TIME ZONE,15,Y,Y
+warehouse,ds,sources,source_id,BIGINT,1,Y,Y
+warehouse,ds,sources,source_name,VARCHAR,2,Y,Y
+warehouse,ds,sources,source_file_type,VARCHAR,3,Y,Y
+warehouse,ds,sources,data_nature,VARCHAR,4,Y,Y
+warehouse,ds,sources,description,VARCHAR,5,Y,Y
+warehouse,ds,sources,is_active,BOOLEAN,6,Y,Y
+warehouse,ds,sources,pipeline_run_id,BIGINT,7,Y,Y
+warehouse,ds,sources,pipeline_id,BIGINT,8,Y,Y
+warehouse,ds,sources,task_run_id,BIGINT,9,Y,Y
+warehouse,ds,sources,row_id,BIGINT,10,Y,Y
+warehouse,aud_mirror,aud_pipelines_run_log,full_refresh,VARCHAR,31,Y,Y
+warehouse,aud_mirror,aud_pipelines_run_log,full_refresh_plan,VARCHAR,32,Y,Y
+warehouse,info,data_dictionary,source_id,INTEGER,1,Y,Y
+warehouse,info,data_dictionary,field_name,VARCHAR,2,Y,Y
+warehouse,info,data_dictionary,values_allowed,VARCHAR,3,Y,Y
+warehouse,info,data_dictionary,description,VARCHAR,4,Y,Y
+warehouse,info,data_dictionary,example,VARCHAR,5,Y,Y
+warehouse,info,data_dictionary,pipeline_run_id,BIGINT,6,Y,Y
+warehouse,info,data_dictionary,pipeline_id,BIGINT,7,Y,Y
+warehouse,info,data_dictionary,task_run_id,BIGINT,8,Y,Y
+warehouse,info,data_dictionary,row_id,BIGINT,9,Y,Y

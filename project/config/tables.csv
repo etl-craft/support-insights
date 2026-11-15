@@ -38,3 +38,4 @@ warehouse,aud_mirror,aud_cfg_pipelines_history,,,,,Y
 warehouse,aud_mirror,aud_cfg_tasks_history,,,,,Y
 warehouse,aud_mirror,aud_pipelines_run_log,,,,,Y
 warehouse,aud_mirror,aud_task_run_log,,,,,Y
+warehouse,aud_mirror,aud_uploads,TABLE,,,,Y
