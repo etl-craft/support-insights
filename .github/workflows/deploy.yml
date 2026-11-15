@@ -39,4 +39,5 @@ jobs:
           $cli seed apply
           $cli lineage --refresh
           $cli generate-docs --with-warehouse
-          $cli run --pipeline-code SI_REFERENCE
+          $cli run --pipeline-code SI_REFERENCE \
+            --reason "GitHub deployment ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"

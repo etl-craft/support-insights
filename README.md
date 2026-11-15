@@ -185,7 +185,8 @@ requests; access grants use the package's admin commands outside config CI; reti
   command line and runs `bundle publish`, `config apply --bundle latest`, `validate`, `seed apply`,
   `lineage --refresh`, `generate-docs --with-warehouse` (so the catalog is built, current and compared with the warehouse) and `run` of `SI_REFERENCE`, all with `--api`; the first bundle publish of a project must be an admin's, which
   approves its connection contract. It holds one developer token and no Engine DB or artifact-store
-  credential, and no workflow on that runner runs on `pull_request`.
+  credential, and no workflow on that runner runs on `pull_request`. The reference run records the
+  GitHub Actions run URL as its reason, as required by STRICT governance.
 - **`ci/PACKAGE_COMMIT`** is the one package commit both workflows install; it needs `login
   --password-stdin` (package #338) and `config apply --bundle` (package #339, fixed over HTTP by #340). The cluster images keep their own pin until S8.E.
 
@@ -193,7 +194,7 @@ The repository settings these workflows rely on are not in the repository. Creat
 an environment named `production` with required reviewers; in it the secret `ETL_CRAFT_DEVELOPER_TOKEN`
 (a `developer` token from `etl-craft token create --role developer`) and the variable `ETL_CRAFT_API`;
 and a self-hosted runner container in the cluster labelled `support-insights`. Protect `main` so a pull
-request must pass `Validate`. `deploy.yml` has not run yet.
+request must pass `Validate`. The production API variable must use an HTTPS address reachable from the runner pod.
 
 ## Views
 
