@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- Declare the mirrored upload-audit and reference-source columns so the customer-support view’s upload
+  provenance traces during ordinary catalog builds without a warehouse schema lookup. Keep
+  mirrored pipeline-audit full-refresh columns aligned with the current package. Declare the
+  dictionary source schema and document source/column lineage for all seven ingestion tasks.
+
 - Dex browser sign-in uses the public PKCE client and `/ui/signin/callback`, alongside the
   existing CLI device callback. Bootstrap configures a persistent state-signing secret through
   the existing secret source, a public UI URL, and shared Dex/UI ingress; Google keeps its

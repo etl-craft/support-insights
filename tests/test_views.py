@@ -110,8 +110,34 @@ class Views(unittest.TestCase):
             table = next(r for r in rows("tables.csv") if r["TABLE_NAME"] == name)
             self.assertEqual((table["SCHEMA_NAME"], table["OBJECT_KIND"]), ("vw", "VIEW"))
 
+    def test_upload_provenance_has_an_offline_source_column_contract(self):
+        contract = {
+            r["COLUMN_NAME"]: r for r in rows("columns.csv")
+            if r["SCHEMA_NAME"] == "aud_mirror" and r["TABLE_NAME"] == "aud_uploads"
+        }
+        table = next(
+            r for r in rows("tables.csv")
+            if r["SCHEMA_NAME"] == "aud_mirror" and r["TABLE_NAME"] == "aud_uploads"
+        )
+        self.assertEqual(table["ACTIVE_FLAG"], "Y")
+        for name in ("upload_id", "account", "file_name"):
+            self.assertIn(name, contract)
+            self.assertEqual(contract[name]["ACTIVE_FLAG"], "Y")
+        self.assertEqual(contract["upload_id"]["DATA_TYPE"].upper(), "BIGINT")
+
+    def test_every_ingestion_documents_its_source_and_column_mappings(self):
+        params = {}
+        for row in rows("task_parameters.csv"):
+            identity = (row["PIPELINE_CODE"], row["TASK_CODE"])
+            params.setdefault(identity, {})[row["PARAMETER_NAME"]] = row["PARAMETER_VALUE"]
+        for identity, values in params.items():
+            if values.get("SCRIPT_KIND") == "INGESTION":
+                with self.subTest(task=identity):
+                    self.assertTrue(values.get("LINEAGE_SOURCE"))
+                    self.assertTrue(values.get("LINEAGE_COLUMNS"))
+
     def test_cloning_mirrors_the_audit_tables_into_the_warehouse_schema(self):
-        connector = (PROJECT / "craft-connector.yml").read_text()
+        connector = re.sub(r" +#.*", "", (PROJECT / "craft-connector.yml").read_text())
         self.assertRegex(connector, r"(?m)^Cloning:\n  Every_minutes: \d+\n  dev:\n    Enabled: true\n    Scope: AUD\n")
         self.assertIn("Schema: aud_mirror", connector)
 
