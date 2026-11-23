@@ -21,7 +21,7 @@
   environment, one developer token), with `ci/PACKAGE_COMMIT` as the single package pin for both.
 - Add all four upload-only steward pipelines with typed file validation, receipt provenance,
   per-row uploader attribution and detached reference-history refresh.
-- Add nightly explicit Iceberg maintenance and the documented pause/hold/drain protocol.
+- Add nightly explicit Iceberg maintenance and the documented DRAIN pause protocol.
 - Fence SI_DM on the business steward writer; extend independent expectations with uploaded
   business/reference corrections and exact row-level provenance.
 - Store local USER credentials in ignored .env.demo-users (0600), excluded from build contexts.

@@ -161,7 +161,7 @@ export ETL_CRAFT_TOKEN="$(cat .state/host-token)"
  Source credentials live
 in the FILE provider mounted on controller/API pods only. The controller/API host configuration resides on the project PVC, so uploads and processed
 uploads share one mount across both UI copies and the controller. The project guide covers
-maintenance holds and source policies; the deployment workflow remains S8.E.
+maintenance pauses and source policies; the deployment workflow remains S8.E.
 
 ## Configuration through CI
 
@@ -537,9 +537,10 @@ env -u ETL_CRAFT_TOKEN XDG_CONFIG_HOME="$PWD/.state/steward-a-config" \
     --pipeline-code SI_STEWARD_BUSINESS tests/fixtures/steward/business-a.csv --format json
 ```
 
-For the two-uploader check, pause `validate_file`, admit a controlled bad-header blocker
-file, then upload business-a and business-b from their separate USER sessions while that run
-is held. Resume the validation task. The blocker is an expected refusal with a failure alert;
+For the two-uploader check, pause SI_STEWARD_BUSINESS with `--active-runs DRAIN`, admit a
+controlled bad-header blocker file (its run is admitted but dispatches nothing while drained),
+then upload business-a and business-b from their separate USER sessions; they wait behind that
+run. Resume the pipeline. The blocker is an expected refusal with a failure alert;
 both waiting files then enter one following run, retaining distinct upload IDs/accounts.
 Check the exact receipt/run IDs through `uploads` and `status` rather than selecting by recency.
 A separate upload-free manual run of a steward pipeline must fail permanently with
@@ -576,24 +577,26 @@ encountered an old identical one-row file, then used the declared two-row restor
 
 ## Run maintenance safely
 
-Before the 02:00–03:00 UTC maintenance window, pause every writer definition (clients, DM,
-all stewards, SI_REFERENCE and SI_SETUP), hold every active exact run, including waiting Gamma
-runs and manual selections, and let already executing writes finish. A definition pause or
-cron skip alone does not stop active dispatch. Use the Runs page and explicit status identities
-to enumerate active contexts; do not take only the most recent rows. Keep the holds if draining
-fails. Only then start SI_MAINTENANCE with an explicit run key.
+Before the 02:00–03:00 UTC maintenance window, pause every writer pipeline (clients, DM, all
+stewards, SI_REFERENCE and SI_SETUP) with `--active-runs DRAIN`, the default. Admitted runs,
+including waiting Gamma runs and manual selections, stay IN-PROGRESS and dispatch no new task;
+already executing writes finish with their own outcome. A cron skip alone does not stop active
+dispatch. Use the Runs page and explicit status identities to confirm that no writer attempt is
+still RUNNING; do not take only the most recent rows. Keep the pauses if a write does not
+finish. Only then start SI_MAINTENANCE with an explicit run key.
 
 The nine SQL_SCRIPT tasks explicitly cover the 32 lake tables, including Gamma signals.
 They use RETRY_ON=NONE: statements commit independently, so inspect a failed statement before
 any explicit retry. Trino's ALTER TABLE EXECUTE is opaque to the generic parser; validate
 reports parser diagnostics but cannot infer the managed-target overlap warning here. The
-independent inventory test checks every registered table plus the signal table. Operator
-holds/draining remain required. Native execution and full attempt statement logs are authoritative.
+independent inventory test checks every registered table plus the signal table. The DRAIN
+pauses remain required. Native execution and full attempt statement logs are authoritative.
 
-After success, release the exact holds and resume each paused definition. Scheduled clients
-and DM use `--then wait`; unscheduled reference/setup/steward definitions do not use `--then`.
-Resume any guarded task definitions too. A held Gamma wait keeps its original 55-minute
-deadline; if it expired while held, it ends SKIPPED when evaluated, without a failure alert.
+After success, resume each paused pipeline; drained runs continue under their original
+admission, with no repair. Scheduled clients and DM use `--then wait`; unscheduled
+reference/setup/steward pipelines do not use `--then`. An admitted Gamma event wait keeps its
+original 55-minute deadline and can finish during the window; its downstream tasks wait for
+resume. If the deadline passes first, the wait ends SKIPPED without a failure alert.
 The workflow/runner that automates this procedure remains S8.E.
 
 Run `tests/test_maintenance_contract.py` for the explicit table/routine inventory and retry
@@ -609,7 +612,8 @@ verified attribution through ODS. Three reference corrections refreshed DWH hist
 unlock batches and DM runs 145/156 matched independent expectations. Maintenance run 158
 completed all nine tasks on their first attempts (96 explicit statements), with no active
 writer, unchanged selected row identities/hashes and Gamma run 157's original wait budget
-preserved. The temporary holds and definition pauses were released afterward. Validation
+preserved. The temporary holds and definition pauses were released afterward (that run
+predates DRAIN pauses, which now replace the holds). Validation
 checked all 11 pipelines and 108 tasks with zero failures/warnings.
 
 ## Browser single sign-on
