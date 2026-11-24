@@ -34,7 +34,7 @@ for package roles; the generator tag is imported into the node. The engine has t
 one required synchronous standby, and a transaction-mode PgBouncer Pooler for the two UI copies.
 The controller and notification listeners connect directly to `engine-rw`.
 
-Pinned package commit: `187a177e8c22b03e4a70c31f2f0c3e4272827506` (package #448).
+Pinned package commit: `a77c77d3134e69c56e04497c3ade279ae08c7f0f` (package #449).
 The measured memory/disk figures are recorded below.
 Images are built locally with that commit's S7.F Dockerfiles and imported with `k3d image import`.
 Nothing is pushed to a registry. S8.E will switch to gated candidate images and wheel evidence.
@@ -122,8 +122,8 @@ Keep schedules disabled while installing a fresh project. Set the email routing 
 The controller sends through this channel when a subscribed pipeline ends FAILED.
 See the package's [alerts guide](https://docs.etl-craft.dev/dev/guides/alerts/).
 
-First deploy a project copy without the physical landing column declarations or seeds. Then run
-SI_SETUP to create its managed targets. Warehouse schemas come from `infra/bootstrap/warehouse.sql`.
+First deploy a project copy without seeds. Keep `columns.csv` in the copy because task lineage
+references those columns. Then run SI_SETUP to create its managed targets. Warehouse schemas come from `infra/bootstrap/warehouse.sql`.
 
 ```sh
 ci/install.sh "$PWD/.state/cli"
@@ -134,7 +134,6 @@ etl-craft --api http://localhost:8080 alert-channel set --project support_insigh
 bootstrap_project=$(mktemp -d)
 cp project/craft-connector.yml "$bootstrap_project/"
 cp -R project/config project/python_scripts project/sql_scripts project/validation_scripts "$bootstrap_project/"
-unlink "$bootstrap_project/config/columns.csv"
 etl-craft --api http://localhost:8080 deploy --project support_insights --project-dir "$bootstrap_project" --plan
 etl-craft --api http://localhost:8080 deploy --project support_insights --project-dir "$bootstrap_project"
 etl-craft --api http://localhost:8080 --project support_insights run \
@@ -142,7 +141,7 @@ etl-craft --api http://localhost:8080 --project support_insights run \
 ```
 
 Wait for that exact run to end SUCCESS using `status --pipeline-code SI_SETUP --run-id ID`.
-Deploy the full project to apply the landing contracts, load the seeds and refresh the pipelines.
+Deploy the full project to load the seeds and refresh the pipelines.
 Remote deploy does not send or apply `migrations/`. Have the deployment administrator apply any
 reviewed project migrations on the controller's host. [Remote CLI guide](https://docs.etl-craft.dev/dev/guides/remote-cli/)
 
@@ -289,7 +288,7 @@ docker run --rm --user "$(id -u):$(id -g)" --entrypoint python \
   -v "$(pwd)/tests:/app/tests:ro" \
   -v "$(pwd)/project:/app/project:ro" \
   -v "$(pwd)/reference:/app/reference:ro" \
-  support-insights-generator:187a177e8c22b03e4a70c31f2f0c3e4272827506 -m unittest discover -s tests
+  support-insights-generator:a77c77d3134e69c56e04497c3ade279ae08c7f0f -m unittest discover -s tests
 ```
 
 For the small live row checks, use unused fixture keys (this validation uses 9000–9002, beyond its random batches). Deliver once after random batch checks, then run each client with
@@ -325,7 +324,7 @@ docker run --rm --network host --entrypoint python \
   -e SI_ORACLE_INPUTS=/app/oracle-inputs.json \
   -v "$(pwd)/.state/oracle-inputs.json:/app/oracle-inputs.json:ro" \
   -v "$(pwd)/tests:/app/tests:ro" -v "$(pwd)/project:/app/project:ro" \
-  support-insights-generator:187a177e8c22b03e4a70c31f2f0c3e4272827506 \
+  support-insights-generator:a77c77d3134e69c56e04497c3ade279ae08c7f0f \
   -m unittest discover -s tests -p test_pipeline_rows.py
 ```
 

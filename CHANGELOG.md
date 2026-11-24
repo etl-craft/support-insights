@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 
-- Pin etl-craft at `187a177e`, deploy and validate the project with the pinned CLI, and route
+- Pin etl-craft at `a77c77d`, deploy and validate the project with the pinned CLI, and route
   pipeline failure events through an administrator-managed EMAIL channel.
 
 - Declare the mirrored upload-audit and reference-source columns so the customer-support view’s upload

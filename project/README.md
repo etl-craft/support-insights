@@ -21,8 +21,8 @@ all affected interaction keys before joining the latest committed ODS rows.
 For a fresh cluster, follow the root [bootstrap walkthrough](../README.md#bootstrap-the-project).
 An administrator sets the `support_team` EMAIL channel with `etl-craft --api ... alert-channel set`;
 the ALERT tasks subscribe to their pipeline's FAILURE event. The walkthrough uses
-`etl-craft --api ... deploy --plan` and `deploy` before SI_SETUP and again with the full
-physical landing contracts and seeds after SI_SETUP. If project migrations are added, the
+`etl-craft --api ... deploy --plan` and `deploy` before SI_SETUP with column contracts
+and again after SI_SETUP with seeds. If project migrations are added, the
 administrator applies them on the controller's host. The source column contracts include
 engine provenance because refresh validates the entire physical source shape.
 [Alerts guide](https://docs.etl-craft.dev/dev/guides/alerts/) · [Remote CLI guide](https://docs.etl-craft.dev/dev/guides/remote-cli/)
