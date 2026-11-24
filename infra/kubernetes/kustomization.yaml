@@ -7,9 +7,9 @@ resources:
 images:
 - name: etl-craft-project
   newName: support-insights-project
-  newTag: 10f4aa8c57d0a8085bb3a5ef1d79cded004d6137
+  newTag: a77c77d3134e69c56e04497c3ade279ae08c7f0f
 - name: support-insights-generator
-  newTag: 10f4aa8c57d0a8085bb3a5ef1d79cded004d6137
+  newTag: a77c77d3134e69c56e04497c3ade279ae08c7f0f
 patches:
 - target:
     kind: Deployment
@@ -31,7 +31,7 @@ patches:
   patch: |
     - op: replace
       path: /spec/template/spec/containers/0/image
-      value: support-insights-ingestion:10f4aa8c57d0a8085bb3a5ef1d79cded004d6137
+      value: support-insights-ingestion:a77c77d3134e69c56e04497c3ade279ae08c7f0f
     - op: replace
       path: /spec/template/spec/containers/0/args
       value:
@@ -118,7 +118,7 @@ patches:
       path: /spec/template/spec/initContainers
       value:
       - name: upload-directories
-        image: support-insights-project:10f4aa8c57d0a8085bb3a5ef1d79cded004d6137
+        image: support-insights-project:a77c77d3134e69c56e04497c3ade279ae08c7f0f
         command: ["/bin/sh", "-c", "mkdir -p /shared/uploads /shared/processed_uploads"]
         securityContext:
           allowPrivilegeEscalation: false

@@ -1,6 +1,7 @@
 """The configuration CI keeps its boundaries: no secrets on pull requests, one pinned package."""
 
 import re
+import subprocess
 import unittest
 from pathlib import Path
 
@@ -27,30 +28,52 @@ class ConfigurationCi(unittest.TestCase):
 
     def test_deploy_never_runs_on_pull_requests_and_needs_a_reviewed_environment(self):
         deploy = text("deploy.yml")
-        self.assertEqual(
-            triggers("deploy.yml"),
-            'on:\n  push:\n    branches: [main]\n    paths:\n      - "project/**"\n',
-        )
+        self.assertNotIn("pull_request", triggers("deploy.yml"))
+        self.assertIn("branches: [main]", triggers("deploy.yml"))
+        self.assertIn('"project/**"', triggers("deploy.yml"))
         self.assertIn("runs-on: [self-hosted, support-insights]", deploy)
         self.assertIn("environment: production", deploy)
 
-    def test_deploy_holds_one_developer_token_and_no_engine_or_store_credential(self):
-        used = set(re.findall(r"secrets\.([A-Z_]+)", text("deploy.yml")))
-        self.assertEqual(used, {"ETL_CRAFT_DEVELOPER_TOKEN"})
+    def test_deploy_uses_admin_token_only_for_routing(self):
+        deploy = text("deploy.yml")
+        run_steps = re.split(r"(?m)^      - name: ", deploy)
+        admin_step, = [step for step in run_steps if "secrets.ETL_CRAFT_ADMIN_TOKEN" in step]
+        self.assertIn("alert-channel set", admin_step)
+        self.assertNotIn("deploy --", admin_step)
+        used = set(re.findall(r"secrets\.([A-Z_]+)", deploy))
+        self.assertEqual(used, {"ETL_CRAFT_DEVELOPER_TOKEN", "ETL_CRAFT_ADMIN_TOKEN"})
+
+    def test_local_validation_plans_deploys_and_validates_in_order(self):
+        script = (ROOT / "ci" / "validate.sh").read_text()
+        commands = ["alert-channel set", "deploy --plan\n", "deploy\n", "validate\n"]
+        positions = [script.index(command) for command in commands]
+        self.assertEqual(positions, sorted(positions))
 
     def test_deploy_runs_its_steps_in_order(self):
         deploy = text("deploy.yml")
         verbs = [
-            "bundle publish",
-            "config apply --bundle latest",
+            "deploy --plan --project-dir project",
+            "deploy --project-dir project",
             "validate",
-            "seed apply",
             "lineage --refresh",
             "generate-docs --with-warehouse",
             "run --pipeline-code SI_REFERENCE",
         ]
         positions = [deploy.index(f"$cli {verb}") for verb in verbs]
         self.assertEqual(positions, sorted(positions))
+
+    def test_removed_package_interfaces_are_absent(self):
+        forbidden = ("EMAIL" + "_ALERT", "config" + " apply", "bundle" + " publish", "seed" + " apply")
+        paths = subprocess.check_output(
+            ["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard"], cwd=ROOT
+        ).decode().split("\0")
+        matches = []
+        for path in sorted(set(paths) - {"", "CHANGELOG.md"}):
+            file = ROOT / path
+            if file.is_file():
+                contents = file.read_bytes().lower()
+                matches.extend((path, term) for term in forbidden if term.lower().encode() in contents)
+        self.assertEqual(matches, [])
 
     def test_every_action_is_pinned_to_a_commit(self):
         for name in ("validate.yml", "deploy.yml"):

@@ -295,7 +295,7 @@ warehouse,ds,sources,is_active,BOOLEAN,6,Y,Y
 warehouse,ds,sources,pipeline_run_id,BIGINT,7,Y,Y
 warehouse,ds,sources,pipeline_id,BIGINT,8,Y,Y
 warehouse,ds,sources,task_run_id,BIGINT,9,Y,Y
-warehouse,ds,sources,row_id,BIGINT,10,Y,Y
+warehouse,ds,sources,row_id,BIGINT,10,,Y
 warehouse,aud_mirror,aud_pipelines_run_log,full_refresh,VARCHAR,31,Y,Y
 warehouse,aud_mirror,aud_pipelines_run_log,full_refresh_plan,VARCHAR,32,Y,Y
 warehouse,info,data_dictionary,source_id,INTEGER,1,Y,Y
@@ -306,4 +306,4 @@ warehouse,info,data_dictionary,example,VARCHAR,5,Y,Y
 warehouse,info,data_dictionary,pipeline_run_id,BIGINT,6,Y,Y
 warehouse,info,data_dictionary,pipeline_id,BIGINT,7,Y,Y
 warehouse,info,data_dictionary,task_run_id,BIGINT,8,Y,Y
-warehouse,info,data_dictionary,row_id,BIGINT,9,Y,Y
+warehouse,info,data_dictionary,row_id,BIGINT,9,,Y

@@ -34,12 +34,7 @@ for package roles; the generator tag is imported into the node. The engine has t
 one required synchronous standby, and a transaction-mode PgBouncer Pooler for the two UI copies.
 The controller and notification listeners connect directly to `engine-rw`.
 
-Pinned package commit: `10f4aa8c57d0a8085bb3a5ef1d79cded004d6137`, including
-[#322](https://github.com/etl-craft/etl-craft/pull/322),
-[#323](https://github.com/etl-craft/etl-craft/pull/323),
-[#324](https://github.com/etl-craft/etl-craft/pull/324) and
-[#325](https://github.com/etl-craft/etl-craft/pull/325) and
-[#326](https://github.com/etl-craft/etl-craft/pull/326).
+Pinned package commit: `a77c77d3134e69c56e04497c3ade279ae08c7f0f` (package #449).
 The measured memory/disk figures are recorded below.
 Images are built locally with that commit's S7.F Dockerfiles and imported with `k3d image import`.
 Nothing is pushed to a registry. S8.E will switch to gated candidate images and wheel evidence.
@@ -71,7 +66,8 @@ Create the first admin through the package CLI. For setup, pipe your chosen pass
 stdin (a single line); login prompts for it interactively:
 
 ```sh
-kubectl exec -i craft-admin -- etl-craft setup --admin-name admin --password-stdin
+kubectl exec craft-admin -- sh -c "sed '/^  Project:/d' /project/craft-connector.yml > /state/bootstrap.yml"
+kubectl exec -i craft-admin -- etl-craft --config /state/bootstrap.yml setup --admin-name admin --password-stdin
 kubectl exec -it craft-admin -- etl-craft login
 kubectl exec craft-admin -- etl-craft project add --project support_insights --reason 'Demo bootstrap'
 kubectl exec craft-admin -- etl-craft pool add --name ingestion --reason 'Demo ingestion capacity'
@@ -116,30 +112,42 @@ tags, stops the etl-craft processes, migrates the Engine DB from a fresh admin p
 keeps the cluster, the Engine DB and every token; runs in flight are lost (they can be recovered). The images no longer match their pinned commit afterwards, so it is a
 development loop: release with a new pin and `build.sh`.
 
+Check the Engine DB's compatibility before using this update path. The current package requires
+the `baseline-0.9.0` migration record. An Engine DB created by an earlier build needs a fresh
+bootstrap. [Engine DB upgrade guide](https://docs.etl-craft.dev/dev/deploying/engine-db/#upgrading)
+
 ## Bootstrap the project
 
-Keep schedules disabled while installing a fresh project. Apply config without physical
-landing column declarations, publish the project, then run SI_SETUP. Its tasks create all
-managed targets; warehouse schemas come from `infra/bootstrap/warehouse.sql`.
+Keep schedules disabled while installing a fresh project. Set the email routing as an admin.
+The controller sends through this channel when a subscribed pipeline ends FAILED.
+See the package's [alerts guide](https://docs.etl-craft.dev/dev/guides/alerts/).
+
+First deploy a project copy without seeds. Keep `columns.csv` in the copy because task lineage
+references those columns. Then run SI_SETUP to create its managed targets. Warehouse schemas come from `infra/bootstrap/warehouse.sql`.
 
 ```sh
-cp -R project/config .state/bootstrap-config
-rm .state/bootstrap-config/columns.csv
-kubectl cp .state/bootstrap-config craft-admin:/tmp/bootstrap-config
-kubectl exec craft-admin -- etl-craft config apply --config-dir /tmp/bootstrap-config
-kubectl exec craft-admin -- etl-craft bundle publish --project-dir /project
+ci/install.sh "$PWD/.state/cli"
+export PATH="$PWD/.state/cli/venv/bin:$PATH"
+export ETL_CRAFT_TOKEN="$(cat .state/host-token)"
+etl-craft --api http://localhost:8080 alert-channel set --project support_insights \
+  --name support_team --kind EMAIL --recipients support-team@example.test --reason 'Demo failure alerts'
+bootstrap_project=$(mktemp -d)
+cp project/craft-connector.yml "$bootstrap_project/"
+cp -R project/config project/python_scripts project/sql_scripts project/validation_scripts "$bootstrap_project/"
+etl-craft --api http://localhost:8080 deploy --project support_insights --project-dir "$bootstrap_project" --plan
+etl-craft --api http://localhost:8080 deploy --project support_insights --project-dir "$bootstrap_project"
 etl-craft --api http://localhost:8080 --project support_insights run \
   --pipeline-code SI_SETUP --init-only --run-key bootstrap-setup
 ```
 
 Wait for that exact run to end SUCCESS using `status --pipeline-code SI_SETUP --run-id ID`.
-Then apply the seeds and full landing contracts and start reference history:
+Deploy the full project to load the seeds and refresh the pipelines.
+Remote deploy does not send or apply `migrations/`. Have the deployment administrator apply any
+reviewed project migrations on the controller's host. [Remote CLI guide](https://docs.etl-craft.dev/dev/guides/remote-cli/)
 
 ```sh
-kubectl exec craft-admin -- etl-craft seed apply
-kubectl cp project/config craft-admin:/tmp/full-config
-kubectl exec craft-admin -- etl-craft config apply --config-dir /tmp/full-config
-kubectl exec craft-admin -- etl-craft bundle publish --project-dir /project
+etl-craft --api http://localhost:8080 deploy --project support_insights --project-dir project --plan
+etl-craft --api http://localhost:8080 deploy --project support_insights --project-dir project
 etl-craft --api http://localhost:8080 --project support_insights run \
   --pipeline-code SI_REFERENCE --init-only --run-key bootstrap-reference
 # Wait for this exact SI_REFERENCE run to end SUCCESS before enabling schedules.
@@ -152,13 +160,7 @@ kubectl exec craft-admin -- etl-craft logout
 kubectl delete pod craft-admin
 ```
 
-Use the enrolled host token for host API commands:
-
-```sh
-export ETL_CRAFT_TOKEN="$(cat .state/host-token)"
-```
-
- Source credentials live
+Source credentials live
 in the FILE provider mounted on controller/API pods only. The controller/API host configuration resides on the project PVC, so uploads and processed
 uploads share one mount across both UI copies and the controller. The project guide covers
 maintenance pauses and source policies; the deployment workflow remains S8.E.
@@ -169,33 +171,24 @@ Metadata is code in `project/config/`. Pipeline, rule and stewardable-pipeline e
 requests; access grants use the package's admin commands outside config CI; retiring a row sets
 `ACTIVE_FLAG = 'N'`. Nobody edits the Engine DB by hand.
 
-- **`validate.yml`** runs on every pull request that touches `project/`, `ci/` or itself, on a
-  GitHub-hosted runner, with no secrets. It runs `ci/validate.sh`: build the wheel at the commit in
-  `ci/PACKAGE_COMMIT` (printing its SHA-256), migrate an empty SQLite Engine DB, create the first admin
-  with `setup` and `login --password-stdin`, add the project and its pools, bootstrap a local DuckDB
-  warehouse (`ci/warehouse.sql`: the same schemas as `infra/bootstrap/warehouse.sql` and the one source
-  table `validate` probes), then `config plan`, `config apply`, `bundle publish` and `validate` on a scratch
-  copy of `project/` whose connector is `ci/craft-connector.yml`. The declared secret names get placeholder
-  values (`validate` checks that they exist, never their value). A bad seed value fails the job: seed files
-  are validated from the published bundle against the DuckDB warehouse, so publishing precedes `validate`.
-  Run it on any machine with `uv` and Git: `ci/validate.sh` (about 30 seconds; `SI_CI_WORK=dir` keeps the
-  scratch folder, `ETL_CRAFT_WHEEL=path` skips the build).
-- **`deploy.yml`** runs on a push to `main` that touches `project/` or the deploy workflow itself, or
-  manually through **Run workflow**, on the self-hosted runner in the demo
-  cluster (label `support-insights`), in the GitHub environment `production`. It installs the same pinned
-  command line and runs `bundle publish`, `config apply --bundle latest`, `validate`, `seed apply`,
-  `lineage --refresh`, `generate-docs --with-warehouse` (so the catalog is built, current and compared with the warehouse) and `run` of `SI_REFERENCE`, all with `--api`; the first bundle publish of a project must be an admin's, which
-  approves its connection contract. It holds one developer token and no Engine DB or artifact-store
-  credential, and no workflow on that runner runs on `pull_request`. The reference run records the
-  GitHub Actions run URL as its reason, as required by STRICT governance.
-- **`ci/PACKAGE_COMMIT`** is the one package commit both workflows install; it needs `login
-  --password-stdin` (package #338) and `config apply --bundle` (package #339, fixed over HTTP by #340). The cluster images keep their own pin until S8.E.
+- **`validate.yml`** runs on every pull request on a GitHub-hosted runner without secrets.
+  Run the same local walkthrough with Git and `uv` by invoking `ci/validate.sh`. It builds the
+  wheel at `ci/PACKAGE_COMMIT`, initializes SQLite and DuckDB, creates the admin, project, pools
+  and email channel, then runs `deploy --plan`, `deploy` and `validate` on a scratch project.
+  The real seed files load into DuckDB. `SI_CI_WORK=dir` keeps the scratch folder.
+- **`deploy.yml`** runs after approved changes reach `main` or through **Run workflow**, in the
+  reviewed `production` environment on the self-hosted runner labelled `support-insights`.
+  The admin step sets the EMAIL channel. The developer step runs `deploy --plan`, `deploy`,
+  `validate`, `lineage --refresh`, `generate-docs --with-warehouse` and the `SI_REFERENCE` run,
+  all with `--api`. The first publication needs an admin to approve the connection contract,
+  as in the bootstrap above. The reference run records the GitHub Actions run URL as its reason.
+  [Remote CLI guide](https://docs.etl-craft.dev/dev/guides/remote-cli/)
 
-The repository settings these workflows rely on are not in the repository. Create them once:
-an environment named `production` with required reviewers; in it the secret `ETL_CRAFT_DEVELOPER_TOKEN`
-(a `developer` token from `etl-craft token create --role developer`) and the variable `ETL_CRAFT_API`;
-and a self-hosted runner container in the cluster labelled `support-insights`. Protect `main` so a pull
-request must pass `Validate`. The production API variable must use an HTTPS address reachable from the runner pod.
+Create the `production` environment with required reviewers. Set its `ETL_CRAFT_API` variable to
+an HTTPS address reachable from the runner pod. Set its `ETL_CRAFT_DEVELOPER_TOKEN` secret to a
+developer service token with the needed project and pipeline grants. Set `ETL_CRAFT_ADMIN_TOKEN`
+to an admin service token for the routing step. Each command receives its token through
+`ETL_CRAFT_TOKEN`. Require `Validate` before merging a pull request.
 
 ## Views
 
@@ -295,7 +288,7 @@ docker run --rm --user "$(id -u):$(id -g)" --entrypoint python \
   -v "$(pwd)/tests:/app/tests:ro" \
   -v "$(pwd)/project:/app/project:ro" \
   -v "$(pwd)/reference:/app/reference:ro" \
-  support-insights-generator:10f4aa8c57d0a8085bb3a5ef1d79cded004d6137 -m unittest discover -s tests
+  support-insights-generator:a77c77d3134e69c56e04497c3ade279ae08c7f0f -m unittest discover -s tests
 ```
 
 For the small live row checks, use unused fixture keys (this validation uses 9000–9002, beyond its random batches). Deliver once after random batch checks, then run each client with
@@ -331,7 +324,7 @@ docker run --rm --network host --entrypoint python \
   -e SI_ORACLE_INPUTS=/app/oracle-inputs.json \
   -v "$(pwd)/.state/oracle-inputs.json:/app/oracle-inputs.json:ro" \
   -v "$(pwd)/tests:/app/tests:ro" -v "$(pwd)/project:/app/project:ro" \
-  support-insights-generator:10f4aa8c57d0a8085bb3a5ef1d79cded004d6137 \
+  support-insights-generator:a77c77d3134e69c56e04497c3ade279ae08c7f0f \
   -m unittest discover -s tests -p test_pipeline_rows.py
 ```
 
