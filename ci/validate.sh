@@ -1,7 +1,7 @@
 #!/bin/sh
 # Validate project/ the way a pull request does: no secrets, no cluster. It builds the wheel at
 # the commit in ci/PACKAGE_COMMIT, migrates an empty Engine DB, bootstraps a local DuckDB
-# warehouse, then runs `config plan`, `config apply`, `bundle publish` and `validate` on a
+# warehouse, then runs `deploy --plan`, `deploy` and `validate` on a
 # scratch copy of project/.
 #   SI_CI_WORK   keep the scratch folder here (default: a new temporary folder, removed on exit)
 #   ETL_CRAFT_WHEEL   use this wheel instead of building the pinned commit
@@ -25,8 +25,8 @@ python3 - "$work/project" <<'PY'
 import re, sys
 folder = sys.argv[1]
 text = open(f"{folder}/craft-connector.yml").read()
-# The bootstrap commands check the email relay, which does not exist here; the project's own
-# commands need the Email section because it has EMAIL_ALERT tasks.
+# Engine bootstrap has no selected project yet and checks services before creating the admin.
+text = re.sub(r"(?m)^  Project:.*\n", "", text)
 open(f"{folder}/bootstrap.yml", "w").write(re.sub(r"  Email:\n(    .*\n)+", "", text))
 PY
 cd "$work/project"
@@ -44,6 +44,8 @@ printf '%s\n' "$password" | etl-craft --config bootstrap.yml setup --admin-name 
 printf '%s\n' "$password" | etl-craft --config bootstrap.yml login --name ci-admin --password-stdin
 etl-craft --config bootstrap.yml project add --project support_insights --name "Support Insights" \
   --environment-type CUSTOM --reason "ci validation" > /dev/null
+etl-craft --config bootstrap.yml alert-channel set --project support_insights \
+  --name support_team --kind EMAIL --recipients support-team@example.test --reason "ci validation"
 for pool in $(awk -F, '$3=="POOL" {print $4}' config/task_parameters.csv | sort -u); do
   etl-craft --config bootstrap.yml pool add --name "$pool" --reason "ci validation" > /dev/null
 done
@@ -57,8 +59,6 @@ connection.execute(open(sys.argv[1]).read())
 connection.close()
 PY
 
-etl-craft --config craft-connector.yml config plan > /dev/null
-etl-craft --config craft-connector.yml config apply
-# validate reads the seed files from the published bundle, so publish before it.
-etl-craft --config craft-connector.yml bundle publish
+etl-craft --config craft-connector.yml deploy --plan
+etl-craft --config craft-connector.yml deploy
 etl-craft --config craft-connector.yml validate

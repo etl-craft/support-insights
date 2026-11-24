@@ -18,10 +18,14 @@ The source supplies customer types, not customer identities; the ODS therefore n
 interactions, agents, support areas and customer types. DM expands changed lookup entities to
 all affected interaction keys before joining the latest committed ODS rows.
 
-Bootstrap applies config without columns.csv, creates targets through SI_SETUP and seeds
-through seed apply, then applies the full physical landing contracts. Subsequent schema
-changes follow the same setup-before-contract sequence. The source column contracts include
+For a fresh cluster, follow the root [bootstrap walkthrough](../README.md#bootstrap-the-project).
+An administrator sets the `support_team` EMAIL channel with `etl-craft --api ... alert-channel set`;
+the ALERT tasks subscribe to their pipeline's FAILURE event. The walkthrough uses
+`etl-craft --api ... deploy --plan` and `deploy` before SI_SETUP and again with the full
+physical landing contracts and seeds after SI_SETUP. If project migrations are added, the
+administrator applies them on the controller's host. The source column contracts include
 engine provenance because refresh validates the entire physical source shape.
+[Alerts guide](https://docs.etl-craft.dev/dev/guides/alerts/) · [Remote CLI guide](https://docs.etl-craft.dev/dev/guides/remote-cli/)
 
 `tests/fixtures/generator-records.json` captures one valid output of each retained generator
 at 2026-11-04 12:00:00 UTC, random seed 15, business key 9000 (assigned to isolate this fixture from random batches), with the first source-specific agent, support area and customer type from the original DS inserts.

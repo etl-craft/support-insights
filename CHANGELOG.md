@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- Pin etl-craft at `187a177e`, deploy and validate the project with the pinned CLI, and route
+  pipeline failure events through an administrator-managed EMAIL channel.
+
 - Declare the mirrored upload-audit and reference-source columns so the customer-support view’s upload
   provenance traces during ordinary catalog builds without a warehouse schema lookup. Keep
   mirrored pipeline-audit full-refresh columns aligned with the current package. Declare the
