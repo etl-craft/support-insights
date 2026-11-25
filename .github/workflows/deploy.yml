@@ -1,7 +1,7 @@
-# Project or deployment-workflow changes on main apply to the running deployment. It runs on the
-# self-hosted runner in the demo cluster, only after a required reviewer approves the
-# `production` environment. Only the routing step receives the admin token. The deploy step
-# uses the developer token. Nothing on that runner runs on pull_request.
+# Project or deployment-workflow changes on main apply to the running deployment. The
+# self-hosted support-insights runner uses the developer token after a required reviewer approves
+# the production environment. An admin bootstraps alert routing separately. This workflow
+# never runs on pull_request.
 name: Deploy
 on:
   workflow_dispatch:
@@ -31,13 +31,6 @@ jobs:
       - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
       - name: Install the pinned etl-craft command line
         run: ci/install.sh "$RUNNER_TEMP/etl-craft"
-      - name: Set the support team email channel
-        env:
-          ETL_CRAFT_TOKEN: ${{ secrets.ETL_CRAFT_ADMIN_TOKEN }}
-        run: |
-          "$RUNNER_TEMP/etl-craft/venv/bin/etl-craft" --api "$ETL_CRAFT_API" --yes \
-            alert-channel set --project support_insights --name support_team --kind EMAIL \
-            --recipients support-team@example.test --reason "Support Insights failure alerts"
       - name: Plan, deploy, validate, rebuild the catalog and run the reference pipeline
         run: |
           PATH="$RUNNER_TEMP/etl-craft/venv/bin:$PATH"
