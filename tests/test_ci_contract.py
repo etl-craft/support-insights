@@ -14,7 +14,7 @@ def text(name):
 
 
 def triggers(name):
-    return re.search(r"(?m)^on:\n((?:  .*\n)+)", text(name)).group(0)
+    return re.search(r"(?m)^on:[^\n]*\n(?:[ \t]+[^\n]*\n)*", text(name)).group(0)
 
 
 class ConfigurationCi(unittest.TestCase):
@@ -34,14 +34,16 @@ class ConfigurationCi(unittest.TestCase):
         self.assertIn("runs-on: [self-hosted, support-insights]", deploy)
         self.assertIn("environment: production", deploy)
 
-    def test_deploy_uses_admin_token_only_for_routing(self):
+    def test_deploy_uses_only_the_developer_secret(self):
         deploy = text("deploy.yml")
-        run_steps = re.split(r"(?m)^      - name: ", deploy)
-        admin_step, = [step for step in run_steps if "secrets.ETL_CRAFT_ADMIN_TOKEN" in step]
-        self.assertIn("alert-channel set", admin_step)
-        self.assertNotIn("deploy --", admin_step)
-        used = set(re.findall(r"secrets\.([A-Z_]+)", deploy))
-        self.assertEqual(used, {"ETL_CRAFT_DEVELOPER_TOKEN", "ETL_CRAFT_ADMIN_TOKEN"})
+        used = set(re.findall(r"secrets\.([A-Z0-9_]+)", deploy, re.IGNORECASE))
+        self.assertEqual(used, {"ETL_CRAFT_DEVELOPER_TOKEN"})
+        self.assertEqual(len(re.findall(r"\bsecrets\b", deploy, re.IGNORECASE)), 1)
+
+    def test_no_self_hosted_workflow_runs_on_pull_requests(self):
+        for workflow in sorted(WORKFLOWS.iterdir()):
+            if workflow.suffix in {".yml", ".yaml"} and "self-hosted" in workflow.read_text():
+                self.assertNotIn("pull_request", triggers(workflow.name), workflow.name)
 
     def test_local_validation_plans_deploys_and_validates_in_order(self):
         script = (ROOT / "ci" / "validate.sh").read_text()

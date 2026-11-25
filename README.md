@@ -163,7 +163,7 @@ kubectl delete pod craft-admin
 Source credentials live
 in the FILE provider mounted on controller/API pods only. The controller/API host configuration resides on the project PVC, so uploads and processed
 uploads share one mount across both UI copies and the controller. The project guide covers
-maintenance pauses and source policies; the deployment workflow remains S8.E.
+maintenance pauses and source policies. The in-cluster runner and full-stack workflow are S8.E.
 
 ## Configuration through CI
 
@@ -178,17 +178,21 @@ requests; access grants use the package's admin commands outside config CI; reti
   The real seed files load into DuckDB. `SI_CI_WORK=dir` keeps the scratch folder.
 - **`deploy.yml`** runs after approved changes reach `main` or through **Run workflow**, in the
   reviewed `production` environment on the self-hosted runner labelled `support-insights`.
-  The admin step sets the EMAIL channel. The developer step runs `deploy --plan`, `deploy`,
-  `validate`, `lineage --refresh`, `generate-docs --with-warehouse` and the `SI_REFERENCE` run,
-  all with `--api`. The first publication needs an admin to approve the connection contract,
-  as in the bootstrap above. The reference run records the GitHub Actions run URL as its reason.
+  Using the developer token, it runs `deploy --plan`, `deploy`, `validate`,
+  `lineage --refresh`, `generate-docs --with-warehouse` and the `SI_REFERENCE` run, all with
+  `--api`. The reference run records the GitHub Actions run URL as its reason.
   [Remote CLI guide](https://docs.etl-craft.dev/dev/guides/remote-cli/)
 
+Before the first developer deployment on a fresh cluster, an admin approves the connection
+contract and creates the `support_team` alert channel. Follow the admin steps under
+[Bootstrap the project](#bootstrap-the-project), including the `alert-channel set` command.
+Manage channels and grants outside config CI.
+
 Create the `production` environment with required reviewers. Set its `ETL_CRAFT_API` variable to
-an HTTPS address reachable from the runner pod. Set its `ETL_CRAFT_DEVELOPER_TOKEN` secret to a
-developer service token with the needed project and pipeline grants. Set `ETL_CRAFT_ADMIN_TOKEN`
-to an admin service token for the routing step. Each command receives its token through
-`ETL_CRAFT_TOKEN`. Require `Validate` before merging a pull request.
+the cluster API address reachable from the self-hosted runner. Set its
+`ETL_CRAFT_DEVELOPER_TOKEN` secret to a developer service token with the needed project and
+pipeline grants. The workflow passes it through `ETL_CRAFT_TOKEN`. Require `Validate` before
+merging a pull request.
 
 ## Views
 
