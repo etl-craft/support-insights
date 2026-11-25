@@ -10,7 +10,7 @@ spec:
     fsGroup: 10001
   containers:
   - name: admin
-    image: support-insights-project:a77c77d3134e69c56e04497c3ade279ae08c7f0f
+    image: support-insights-project:468cd01904f8278c56a39982c9be2b3ca8a19b7f
     imagePullPolicy: Never
     command: [sh, -c, 'sleep 3600']
     envFrom:

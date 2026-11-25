@@ -88,6 +88,22 @@ class ConfigurationCi(unittest.TestCase):
         for name in ("validate.sh", "install.sh"):
             self.assertNotIn(pin, (ROOT / "ci" / name).read_text())  # one source, never copied
 
+    def test_the_cluster_images_use_the_same_package_pin(self):
+        pin = (ROOT / "ci" / "PACKAGE_COMMIT").read_text().strip()
+        build = (ROOT / "infra" / "bootstrap" / "build.sh").read_text()
+        self.assertIn("commit=$(cat ci/PACKAGE_COMMIT)", build)
+        self.assertNotRegex(build, r"[0-9a-f]{40}")
+        tagged = [ROOT / "infra" / "bootstrap" / "admin.yml", *(ROOT / "infra" / "kubernetes").glob("*.y*ml")]
+        tags = {
+            (path.name, tag)
+            for path in tagged
+            for tag in re.findall(r"support-insights-[\w-]+:([0-9a-f]{40})", path.read_text())
+            + re.findall(r"newTag: ([0-9a-f]{40})", path.read_text())
+        }
+        self.assertTrue(tags)
+        self.assertEqual({tag for _, tag in tags}, {pin}, sorted(tags))
+        self.assertNotRegex((ROOT / "README.md").read_text(), r"support-insights-[\w-]+:[0-9a-f]{40}")
+
     def test_the_local_warehouse_creates_every_schema_the_deployment_does(self):
         schemas = lambda path: set(re.findall(r"CREATE SCHEMA IF NOT EXISTS (?:warehouse\.)?(\w+)", path.read_text()))
         self.assertEqual(

@@ -1,9 +1,10 @@
 -- For each successful client run, valid_count is the audited INSERT_COUNT of the
 -- successful PRE_ODS append attempt minus that run's distinct REJECT keys.
 -- load_reject_count sums REJECT_COUNT from successful ingestion-to-PRE_ODS load
--- attempts. Validity percentage (data_quality_score) is 100 * valid_count / the
--- sum of PRE_ODS rows and load rejects, or NULL when that sum is zero. Duplicates
--- are reported separately. PRE_ODS is replaced by subsequent runs.
+-- attempts. checked_count is the audited PRE_ODS row count plus load_reject_count.
+-- Validity percentage (data_quality_score) is 100 * valid_count / checked_count,
+-- or NULL when checked_count is zero. Duplicates are reported separately.
+-- PRE_ODS is replaced by subsequent runs.
 WITH pipelines AS (
     SELECT
         pipeline_id,

@@ -34,7 +34,7 @@ for package roles; the generator tag is imported into the node. The engine has t
 one required synchronous standby, and a transaction-mode PgBouncer Pooler for the two UI copies.
 The controller and notification listeners connect directly to `engine-rw`.
 
-Pinned package commit: `a77c77d3134e69c56e04497c3ade279ae08c7f0f` (package #449).
+Pinned package commit: the one in `ci/PACKAGE_COMMIT`. The validation job, `infra/bootstrap/build.sh` and every image tag in `infra/` use it.
 The measured memory/disk figures are recorded below.
 Images are built locally with that commit's S7.F Dockerfiles and imported with `k3d image import`.
 Nothing is pushed to a registry. S8.E will switch to gated candidate images and wheel evidence.
@@ -212,7 +212,8 @@ etl-craft --api http://localhost:8080 --project support_insights run --pipeline-
   that corrected the row (`upload_id`, `steward`, `upload_file_name`, from ODS and the mirrored
   `AUD_UPLOADS`), the last committed SI_DM window (`committed_window_end`, the latest successful
   `ods_to_dm` task run's `watermark_to`) and `freshness_seconds` since it. Keys with an active REJECT
-  business-rule result in the mirrored `AUD_BUSINESS_RULES_RESULTS` are excluded.
+  business-rule result for their originating pipeline run in the mirrored
+  `AUD_BUSINESS_RULES_RESULTS` are excluded.
 - **`vw.data_metrics_view`** returns (`dag_run_id`, `source_name`, `run_start_date`,
   `batch_count`, `insert_count`, `update_count`, `duplicate_count`, `load_reject_count`, `valid_count`, `data_quality_score`,
   `run_duration_sec`) over the audit tables that cloning mirrors into `aud_mirror`, one row per successful
@@ -222,9 +223,10 @@ etl-craft --api http://localhost:8080 --project support_insights run --pipeline-
   For each successful client run, `valid_count` is the audited `INSERT_COUNT` of the
   successful PRE_ODS append attempt minus that run's distinct mirrored business-rule
   REJECT keys. INCOMPLETE and REPORT stay valid. `load_reject_count` sums audited
-  `REJECT_COUNT` from successful ingestion-to-PRE_ODS load attempts. `data_quality_score`
-  is 100 times `valid_count` divided by the sum of PRE_ODS rows and load rejects.
-  A zero denominator yields NULL. Dedupe removals appear only in `duplicate_count`.
+  `REJECT_COUNT` from successful ingestion-to-PRE_ODS load attempts. `checked_count`
+  is the audited PRE_ODS row count plus `load_reject_count`. The validity percentage
+  (`data_quality_score`) is 100 times `valid_count` divided by `checked_count`, or NULL
+  when `checked_count` is zero. Dedupe removals appear only in `duplicate_count`.
   The audit counts preserve run history when PRE_ODS is replaced or load rejects expire.
 - **Cloning** is on (`Scope: AUD`, every five minutes) into `aud_mirror` on Trino over Iceberg.
   The validation cycle copied 65 audit tables. Wait for cloning to finish before checking the views
@@ -307,7 +309,7 @@ docker run --rm --user "$(id -u):$(id -g)" --entrypoint python \
   -v "$(pwd)/tests:/app/tests:ro" \
   -v "$(pwd)/project:/app/project:ro" \
   -v "$(pwd)/reference:/app/reference:ro" \
-  support-insights-generator:a77c77d3134e69c56e04497c3ade279ae08c7f0f -m unittest discover -s tests
+  "support-insights-generator:$(cat ci/PACKAGE_COMMIT)" -m unittest discover -s tests
 ```
 
 For the small live row checks, use unused fixture keys (this validation uses 9000–9002, beyond its random batches). Deliver once after random batch checks, then run each client with
@@ -343,7 +345,7 @@ docker run --rm --network host --entrypoint python \
   -e SI_ORACLE_INPUTS=/app/oracle-inputs.json \
   -v "$(pwd)/.state/oracle-inputs.json:/app/oracle-inputs.json:ro" \
   -v "$(pwd)/tests:/app/tests:ro" -v "$(pwd)/project:/app/project:ro" \
-  support-insights-generator:a77c77d3134e69c56e04497c3ade279ae08c7f0f \
+  "support-insights-generator:$(cat ci/PACKAGE_COMMIT)" \
   -m unittest discover -s tests -p test_pipeline_rows.py
 ```
 
@@ -522,11 +524,11 @@ admin token to create USER accounts and grant access, then sign in separately fo
 etl-craft --api http://localhost:8080 --project support_insights account add \
   --name demo-steward-a --kind USER --role viewer
 etl-craft --api http://localhost:8080 --project support_insights access grant \
-  --account demo-steward-a --permission CAN_VIEW --reason 'Demo project discovery'
+  --account demo-steward-a --role CAN_VIEW --reason 'Demo project discovery'
 for pipeline in SI_STEWARD_DS_AGENTS SI_STEWARD_DS_CUSTOMER_TYPES \
   SI_STEWARD_DS_SUPPORT_AREAS SI_STEWARD_BUSINESS; do
   etl-craft --api http://localhost:8080 --project support_insights access grant \
-    --account demo-steward-a --pipeline "$pipeline" --permission CAN_UPLOAD \
+    --account demo-steward-a --pipeline "$pipeline" --role CAN_UPLOAD \
     --reason 'Demo steward uploads'
 done
 # Repeat for demo-steward-b. Record the chosen passwords in .env.demo-users (0600).

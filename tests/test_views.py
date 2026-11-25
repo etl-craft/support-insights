@@ -174,7 +174,46 @@ class Views(unittest.TestCase):
 @unittest.skipUnless(
     importlib.util.find_spec("duckdb"), "install the package DuckDB test extra"
 )
-class MetricsAudit(unittest.TestCase):
+class ViewAudit(unittest.TestCase):
+    def test_fact_rejections_bind_to_the_originating_run(self):
+        import duckdb
+
+        sql = (SQL / "customer_support_fact_view.sql").read_text()
+        rejection = sql.split("), committed AS (", 1)[0] + ") SELECT * FROM rejected"
+        with duckdb.connect() as conn:
+            conn.execute("""
+                CREATE SCHEMA pre_ods;
+                CREATE SCHEMA aud_mirror;
+                CREATE TABLE pre_ods.customer_support_stage AS
+                    SELECT * FROM (VALUES (1, 'stale', 2, 100),
+                        (1, 'current', 2, 101), (1, 'incomplete', 2, 102))
+                    AS stage(source_id, source_system_identifier, pipeline_run_id, row_id);
+                CREATE TABLE aud_mirror.aud_business_rules_results AS
+                    SELECT *, 'pre_ods' AS target_schema_name,
+                        'customer_support_stage' AS target_table_name,
+                        'Y' AS active_flag, NULL AS end_date
+                    FROM (VALUES (1, '100', 'REJECT'), (2, '101', 'REJECT'),
+                        (2, '102', 'INCOMPLETE'))
+                    AS results(business_rule_run_id, business_rule_key, status);
+                CREATE TABLE aud_mirror.aud_business_rules_run_log AS
+                    SELECT * FROM (VALUES (1, 11), (2, 12))
+                    AS rules(business_rule_run_id, task_run_id);
+                CREATE TABLE aud_mirror.aud_task_run_log AS
+                    SELECT * FROM (VALUES (11, 1), (12, 2))
+                    AS tasks(task_run_id, pipeline_run_id);
+            """)
+            expected = [(1, "current", 2)]
+            self.assertEqual(conn.execute(rejection).fetchall(), expected)
+            for predicate in (
+                "t.pipeline_run_id = st.pipeline_run_id",
+                "r.business_rule_key = CAST(st.row_id AS VARCHAR)",
+                "r.status = 'REJECT'",
+            ):
+                with self.subTest(removed_predicate=predicate):
+                    self.assertIn(predicate, rejection)
+                    altered = rejection.replace(predicate, "TRUE")
+                    self.assertNotEqual(conn.execute(altered).fetchall(), expected)
+
     def test_validity_counts_only_successful_loads_and_only_reject_rules(self):
         import duckdb
 
@@ -361,7 +400,6 @@ class LiveViews(unittest.TestCase):
                             "data_quality_score": 100.0 * valid / staged
                             if staged
                             else None,
-
                         },
                     )
 
@@ -378,6 +416,7 @@ class LiveViews(unittest.TestCase):
             self.assertEqual(stage_validity(conn, first["run_id"])["staged"], 0)
             second = stage_validity(conn, capture["second_run_id"])
             self.assertGreater(second["staged"], 0)
+            self.assertEqual(second["rejected"], 1, "the replacement run records its own REJECT")
             for expected in (first, second):
                 with self.subTest(run=expected["run_id"]):
                     (got,) = query_rows(
@@ -406,9 +445,6 @@ class LiveViews(unittest.TestCase):
             "handle and work time": ("handle_time", "work_time"),
             "ratings": ("customer_rating",),
             "query status": ("query_status", "solution_type"),
-            "customer breakdown": ("customer_type_name",),
-            "support area breakdown": ("support_area_name",),
-            "volume over time": ("interaction_date",),
             "source and publisher provenance": (
                 "source_pipeline_run_id",
                 "source_task_run_id",
@@ -430,6 +466,12 @@ class LiveViews(unittest.TestCase):
                   AND r.target_schema_name = 'pre_ods'
                   AND r.target_table_name = 'customer_support_stage'
                   AND r.status = 'REJECT' AND r.active_flag = 'Y' AND r.end_date IS NULL
+                  AND r.business_rule_run_id IN (
+                    SELECT b.business_rule_run_id
+                    FROM aud_mirror.aud_business_rules_run_log b
+                    JOIN aud_mirror.aud_task_run_log t ON t.task_run_id = b.task_run_id
+                    WHERE t.pipeline_run_id = st.pipeline_run_id
+                  )
               )
         """
         identity = "source_name, source_system_identifier"
@@ -454,22 +496,28 @@ class LiveViews(unittest.TestCase):
                             f"SELECT {identity}, {projected} FROM vw.customer_support_fact_view{order}",
                         ),
                     )
-            with self.subTest(measure="agent breakdown"):
-                agents = query_rows(
-                    conn,
-                    f"""
-                    SELECT s.source_name, f.source_system_identifier,
-                        (SELECT a.pseudo_code FROM ds.agents a WHERE a.agent_id = f.agent_id) AS pseudo_code
-                    {base}{order}
-                """,
-                )
-                self.assertEqual(
-                    agents,
-                    query_rows(
-                        conn,
-                        f"SELECT {identity}, pseudo_code FROM vw.customer_support_fact_view{order}",
-                    ),
-                )
+            agent = "(SELECT a.pseudo_code FROM ds.agents a WHERE a.agent_id = f.agent_id)"
+            for label, expected, projected in (
+                ("agent breakdown", agent, "pseudo_code"),
+                ("customer breakdown", "f.customer_type_name", "customer_type_name"),
+                ("support area breakdown", "f.support_area_name", "support_area_name"),
+                ("daily volume", "CAST(f.interaction_date AS DATE)", "CAST(interaction_date AS DATE)"),
+            ):
+                with self.subTest(measure=label):
+                    group = "GROUP BY 1, 2 ORDER BY 1, 2 NULLS FIRST"
+                    self.assertEqual(
+                        query_rows(
+                            conn,
+                            f"""SELECT s.source_name, dimension, COUNT(*) AS interactions
+                                FROM (SELECT s.source_name, {expected} AS dimension {base}) s
+                                {group}""",
+                        ),
+                        query_rows(
+                            conn,
+                            f"""SELECT source_name, {projected} AS dimension,
+                                COUNT(*) AS interactions FROM vw.customer_support_fact_view {group}""",
+                        ),
+                    )
             with self.subTest(measure="latest interactions"):
                 latest = " ORDER BY interaction_date DESC NULLS LAST, source_name, source_system_identifier LIMIT 20"
                 self.assertEqual(
@@ -528,7 +576,11 @@ class LiveViews(unittest.TestCase):
                 JOIN ds.sources s ON s.source_id = st.source_id
                 WHERE st.source_system_identifier IS NOT NULL AND EXISTS (
                     SELECT 1 FROM aud_mirror.aud_business_rules_results r
+                    JOIN aud_mirror.aud_business_rules_run_log b
+                      ON b.business_rule_run_id = r.business_rule_run_id
+                    JOIN aud_mirror.aud_task_run_log t ON t.task_run_id = b.task_run_id
                     WHERE r.business_rule_key = CAST(st.row_id AS VARCHAR)
+                      AND t.pipeline_run_id = st.pipeline_run_id
                       AND r.target_schema_name = 'pre_ods'
                       AND r.target_table_name = 'customer_support_stage'
                       AND r.status = 'REJECT' AND r.active_flag = 'Y' AND r.end_date IS NULL

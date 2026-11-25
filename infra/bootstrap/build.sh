@@ -1,6 +1,6 @@
 #!/bin/sh
 set -eu
-commit=a77c77d3134e69c56e04497c3ade279ae08c7f0f
+commit=$(cat ci/PACKAGE_COMMIT)
 mkdir -p .state
 image_context=$(mktemp -d "$(pwd)/.state/image.XXXXXX")
 mkdir -p "$image_context/wheels"
