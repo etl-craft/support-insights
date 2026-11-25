@@ -198,11 +198,11 @@ merging a pull request.
 
 `SI_VIEWS` creates the two reporting views with `CREATE_VIEW` tasks. It has no schedule: run it once
 after the first cloning cycle has created the mirror tables, and again after changing a view's SELECT
-(publish the bundle and run `pipelines refresh` first so the run pins the new file).
+(run `deploy` first to publish the bundle and refresh the pipelines).
 
 ```sh
-etl-craft --api http://localhost:8080 --project support_insights clone   # admin; first time only
-etl-craft --api http://localhost:8080 --project support_insights run --pipeline-code SI_VIEWS
+etl-craft --api http://localhost:8080 --project support_insights clone   # admin
+etl-craft --api http://localhost:8080 --project support_insights run --pipeline-code SI_VIEWS --reason 'Publish reporting views'
 ```
 
 - **`vw.customer_support_fact_view`** reads `dm.customer_support_fact`: `ACTIVE_FLAG = 'Y'` replaces
@@ -213,21 +213,36 @@ etl-craft --api http://localhost:8080 --project support_insights run --pipeline-
   `AUD_UPLOADS`), the last committed SI_DM window (`committed_window_end`, the latest successful
   `ods_to_dm` task run's `watermark_to`) and `freshness_seconds` since it. Keys with an active REJECT
   business-rule result in the mirrored `AUD_BUSINESS_RULES_RESULTS` are excluded.
-- **`vw.data_metrics_view`** keeps the legacy columns (`dag_run_id`, `source_name`, `run_start_date`,
-  `batch_count`, `insert_count`, `update_count`, `duplicate_count`, `valid_count`, `data_quality_score`,
+- **`vw.data_metrics_view`** returns (`dag_run_id`, `source_name`, `run_start_date`,
+  `batch_count`, `insert_count`, `update_count`, `duplicate_count`, `load_reject_count`, `valid_count`, `data_quality_score`,
   `run_duration_sec`) over the audit tables that cloning mirrors into `aud_mirror`, one row per successful
   client run. `batch_count` is the ingestion task's `SOURCE_COUNT`; `insert_count` counts new keys
   (`INSERT_COUNT - UPDATE_COUNT`) and `update_count` closed versions of the `lnd_to_prs` task;
   `duplicate_count` is that task's. SI_DM is never a fourth source.
-- **Cloning** is on (`Scope: AUD`, every five minutes) into `aud_mirror`. It works on Trino over Iceberg.
-  Measured here, a table copies at about 17 rows per second (batched `INSERT ... VALUES`), so the first
-  cycle takes about fifteen minutes for this deployment's 62 tables; later cycles replace every row again.
+  For each successful client run, `valid_count` is the audited `INSERT_COUNT` of the
+  successful PRE_ODS append attempt minus that run's distinct mirrored business-rule
+  REJECT keys. INCOMPLETE and REPORT stay valid. `load_reject_count` sums audited
+  `REJECT_COUNT` from successful ingestion-to-PRE_ODS load attempts. `data_quality_score`
+  is 100 times `valid_count` divided by the sum of PRE_ODS rows and load rejects.
+  A zero denominator yields NULL. Dedupe removals appear only in `duplicate_count`.
+  The audit counts preserve run history when PRE_ODS is replaced or load rejects expire.
+- **Cloning** is on (`Scope: AUD`, every five minutes) into `aud_mirror` on Trino over Iceberg.
+  The validation cycle copied 65 audit tables. Wait for cloning to finish before checking the views
+  so they can see the corresponding pipeline, task attempt and rule records.
 
-Checked on this deployment: `data_metrics_view` returns 186 rows, and `batch_count`, `insert_count`,
-`update_count` and `duplicate_count` match an independent computation from the Engine DB for every one of
-them; `customer_support_fact_view` returns 5,714 rows, the active `dm.customer_support_fact` count. S8.F's
-reference queries check both views' values against the generators' own records. Trino's Iceberg connector
-refuses a view column of type `timestamp(3)`, so `committed_window_end` is cast to `timestamp(6)`.
+In the UI, open **Pipelines**, select **SI_VIEWS**, and open the exact run ID printed by
+the command. Verify both CREATE_VIEW tasks ended successfully. In **Catalog**, look up
+`vw.customer_support_fact_view` and `vw.data_metrics_view` and open each view's column list.
+Trino's Iceberg connector requires the committed window column to use `timestamp(6)`.
+
+The view reference checks live in `tests/test_views.py`, in the S8.F acceptance suite.
+Use the Trino port-forward described below and set `SI_TRINO_PORT=18080` when running it.
+The live checks need completed client and SI_DM runs, mirrored audit, a rejected new key,
+and a published steward correction. For the replacement case, set `SI_VIEW_RUNS` to the
+JSON captured from the first run before loading the second. The fixture records the direct
+`stage_validity` result and the first run's complete metrics row under `first.view`, along with
+`second_run_id`. The synthetic audit case exercises failed attempts, non-REJECT rules and
+load rejects with the package development environment's DuckDB extra.
 
 ## Source bounds and batches
 

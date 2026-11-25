@@ -13,7 +13,8 @@ WITH rejected AS (
         AND r.end_date IS NULL
 ), committed AS (
     SELECT
-        CAST(MAX_BY(from_iso8601_timestamp(t.watermark_to), t.task_run_id) AS TIMESTAMP(6) WITH TIME ZONE) AS committed_window_end
+        CAST(MAX_BY(from_iso8601_timestamp_nanos(t.watermark_to), t.task_run_id)
+            AS TIMESTAMP(6) WITH TIME ZONE) AS committed_window_end
     FROM aud_mirror.aud_task_run_log AS t
     JOIN aud_mirror.aud_cfg_tasks_history AS k
         ON k.task_id = t.task_id

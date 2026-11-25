@@ -1,3 +1,9 @@
+-- For each successful client run, valid_count is the audited INSERT_COUNT of the
+-- successful PRE_ODS append attempt minus that run's distinct REJECT keys.
+-- load_reject_count sums REJECT_COUNT from successful ingestion-to-PRE_ODS load
+-- attempts. Validity percentage (data_quality_score) is 100 * valid_count / the
+-- sum of PRE_ODS rows and load rejects, or NULL when that sum is zero. Duplicates
+-- are reported separately. PRE_ODS is replaced by subsequent runs.
 WITH pipelines AS (
     SELECT
         pipeline_id,
@@ -50,13 +56,40 @@ WITH pipelines AS (
     WHERE t.status = 'SUCCESS'
     GROUP BY
         t.pipeline_run_id
-), valid AS (
+), load_tasks (pipeline_code, task_code, writes_preods) AS (
+    VALUES
+        ('SI_CLIENT_ALPHA', 'alpha_lnd_to_prs', FALSE),
+        ('SI_CLIENT_ALPHA', 'alpha_prs_to_cdc', FALSE),
+        ('SI_CLIENT_ALPHA', 'alpha_cdc_to_preods', TRUE),
+        ('SI_CLIENT_BETA', 'beta_lnd_to_prs', FALSE),
+        ('SI_CLIENT_BETA', 'beta_prs_to_cdc', FALSE),
+        ('SI_CLIENT_BETA', 'beta_cdc_to_preods', TRUE),
+        ('SI_CLIENT_GAMMA', 'gamma_lnd_to_prs', FALSE),
+        ('SI_CLIENT_GAMMA', 'gamma_prs_to_cdc', FALSE),
+        ('SI_CLIENT_GAMMA', 'gamma_cdc_to_preods', TRUE)
+), successful_load_attempts AS (
     SELECT
-        source_pipeline_run_id AS pipeline_run_id,
-        COUNT(*) AS valid_count
-    FROM ods.interactions
-    GROUP BY
-        source_pipeline_run_id
+        t.pipeline_run_id,
+        t.task_run_id,
+        MAX_BY(CASE WHEN d.writes_preods THEN a.insert_count ELSE 0 END, a.attempt_number)
+            AS stage_count,
+        MAX_BY(COALESCE(a.reject_count, 0), a.attempt_number) AS load_reject_count
+    FROM aud_mirror.aud_task_run_log AS t
+    JOIN tasks AS k
+        ON k.task_id = t.task_id
+    JOIN load_tasks AS d
+        ON d.pipeline_code = k.pipeline_code AND d.task_code = k.task_code
+    JOIN aud_mirror.aud_task_attempts AS a
+        ON a.task_run_id = t.task_run_id
+    WHERE t.status = 'SUCCESS' AND a.status = 'SUCCESS'
+    GROUP BY t.pipeline_run_id, t.task_run_id
+), staged AS (
+    SELECT
+        pipeline_run_id,
+        SUM(stage_count) AS stage_count,
+        SUM(load_reject_count) AS load_reject_count
+    FROM successful_load_attempts
+    GROUP BY pipeline_run_id
 ), rejected AS (
     SELECT
         t.pipeline_run_id,
@@ -67,8 +100,10 @@ WITH pipelines AS (
     JOIN aud_mirror.aud_task_run_log AS t
         ON t.task_run_id = l.task_run_id
     WHERE r.status = 'REJECT'
-    GROUP BY
-        t.pipeline_run_id
+        AND r.target_catalog_name = 'warehouse'
+        AND r.target_schema_name = 'pre_ods'
+        AND r.target_table_name = 'customer_support_stage'
+    GROUP BY t.pipeline_run_id
 )
 SELECT
     runs.pipeline_run_id AS dag_run_id,
@@ -78,18 +113,18 @@ SELECT
     COALESCE(versions.insert_count - versions.update_count, 0) AS insert_count,
     COALESCE(versions.update_count, 0) AS update_count,
     COALESCE(versions.duplicate_count, 0) AS duplicate_count,
-    COALESCE(valid.valid_count, 0) AS valid_count,
-    COALESCE(
-        100.0 * valid.valid_count / NULLIF(valid.valid_count + COALESCE(rejected.rejected_count, 0), 0),
-        0.0
-    ) AS data_quality_score,
+    COALESCE(staged.load_reject_count, 0) AS load_reject_count,
+    COALESCE(staged.stage_count, 0) - COALESCE(rejected.rejected_count, 0) AS valid_count,
+    CAST(100 AS DOUBLE)
+        * (COALESCE(staged.stage_count, 0) - COALESCE(rejected.rejected_count, 0))
+        / NULLIF(COALESCE(staged.stage_count, 0) + COALESCE(staged.load_reject_count, 0), 0) AS data_quality_score,
     COALESCE(runs.run_duration_sec, 0.0) AS run_duration_sec
 FROM runs
 LEFT JOIN ingestion
     ON ingestion.pipeline_run_id = runs.pipeline_run_id
 LEFT JOIN versions
     ON versions.pipeline_run_id = runs.pipeline_run_id
-LEFT JOIN valid
-    ON valid.pipeline_run_id = runs.pipeline_run_id
+LEFT JOIN staged
+    ON staged.pipeline_run_id = runs.pipeline_run_id
 LEFT JOIN rejected
     ON rejected.pipeline_run_id = runs.pipeline_run_id

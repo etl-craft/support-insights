@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- Preserve reporting validity by successful client run using mirrored audit counts.
+  Data metrics now show `load_reject_count` and return NULL validity when no rows were checked.
+  The fact view preserves the committed SI_DM watermark to the microsecond.
+
 - Pin etl-craft at `a77c77d`, deploy and validate the project with the pinned CLI, and route
   pipeline failure events through an administrator-managed EMAIL channel.
 

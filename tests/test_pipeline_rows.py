@@ -6,7 +6,7 @@ import os
 import unittest
 from pathlib import Path
 
-from pipeline_oracle import eligible, expected
+from pipeline_oracle import eligible, expected, query_rows, trino_connection
 
 ROOT = Path(__file__).parents[1]
 
@@ -27,28 +27,9 @@ class PipelineRows(unittest.TestCase):
             )
 
     def rows(self, table, columns):
-        from trino.dbapi import connect
-
-        with connect(
-            host=os.environ.get("SI_TRINO_HOST", "localhost"),
-            port=int(os.environ.get("SI_TRINO_PORT", "8080")),
-            user="etl_craft",
-            catalog="warehouse",
-            schema="ods",
-        ) as conn:
-            cursor = conn.cursor()
-            cursor.execute(
-                "SELECT "
-                + ",".join(columns)
-                + " FROM "
-                + table
-                + (
-                    " WHERE ACTIVE_FLAG='Y'"
-                    if table.startswith(("dm.", "dwh."))
-                    else ""
-                )
-            )
-            return [dict(zip(columns, row, strict=True)) for row in cursor]
+        active = " WHERE ACTIVE_FLAG='Y'" if table.startswith(("dm.", "dwh.")) else ""
+        with trino_connection() as conn:
+            return query_rows(conn, f"SELECT {','.join(columns)} FROM {table}{active}")
 
     def client(self, name):
         candidates = [expected(name, row) for row in self.inputs[name]]
