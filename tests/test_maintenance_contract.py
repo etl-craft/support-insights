@@ -11,11 +11,20 @@ ROOT = Path(__file__).parents[1] / "project"
 class MaintenanceContract(unittest.TestCase):
     def test_explicit_table_list_covers_the_lake(self):
         with (ROOT / "config/tables.csv").open() as stream:
-            tables = {
-                row["SCHEMA_NAME"] + "." + row["TABLE_NAME"]
-                for row in csv.DictReader(stream)
-                if row["OBJECT_KIND"] != "VIEW" and row["SCHEMA_NAME"] != "aud_mirror"
-            }
+            rows = [row for row in csv.DictReader(stream) if row["OBJECT_KIND"] != "VIEW"]
+        # Cloning writes aud_mirror, so the package's own retention maintains it, not a script.
+        mirrored = [row for row in rows if row["SCHEMA_NAME"] == "aud_mirror"]
+        self.assertTrue(mirrored)
+        for row in mirrored:
+            with self.subTest(table=row["TABLE_NAME"]):
+                self.assertEqual(
+                    (row["SNAPSHOT_RETENTION_DAYS"], row["ORPHAN_RETENTION_DAYS"]), ("7", "7")
+                )
+        tables = {
+            row["SCHEMA_NAME"] + "." + row["TABLE_NAME"]
+            for row in rows
+            if row["SCHEMA_NAME"] != "aud_mirror"
+        }
         tables.add("lnd.gamma_object_events")
         statements = {}
         for path in (ROOT / "sql_scripts").glob("maintenance_*.sql"):
