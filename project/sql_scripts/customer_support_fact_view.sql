@@ -11,9 +11,15 @@ WITH rejected AS (
         AND r.status = 'REJECT'
         AND r.active_flag = 'Y'
         AND r.end_date IS NULL
+    JOIN aud_mirror.aud_business_rules_run_log AS b
+        ON b.business_rule_run_id = r.business_rule_run_id
+    JOIN aud_mirror.aud_task_run_log AS t
+        ON t.task_run_id = b.task_run_id
+        AND t.pipeline_run_id = st.pipeline_run_id
 ), committed AS (
     SELECT
-        CAST(MAX_BY(from_iso8601_timestamp(t.watermark_to), t.task_run_id) AS TIMESTAMP(6) WITH TIME ZONE) AS committed_window_end
+        CAST(MAX_BY(from_iso8601_timestamp_nanos(t.watermark_to), t.task_run_id)
+            AS TIMESTAMP(6) WITH TIME ZONE) AS committed_window_end
     FROM aud_mirror.aud_task_run_log AS t
     JOIN aud_mirror.aud_cfg_tasks_history AS k
         ON k.task_id = t.task_id

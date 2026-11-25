@@ -249,6 +249,54 @@ warehouse,aud_mirror,aud_pipelines_run_log,metadata_snapshot,VARCHAR,27,Y,Y
 warehouse,aud_mirror,aud_pipelines_run_log,updated_at,TIMESTAMP(6) WITH TIME ZONE,28,Y,Y
 warehouse,aud_mirror,aud_pipelines_run_log,sla_breached_at,TIMESTAMP(6) WITH TIME ZONE,29,Y,Y
 warehouse,aud_mirror,aud_pipelines_run_log,run_label,VARCHAR,30,Y,Y
+warehouse,aud_mirror,aud_task_attempts,attempt_id,BIGINT,1,Y,Y
+warehouse,aud_mirror,aud_task_attempts,task_run_id,BIGINT,2,Y,Y
+warehouse,aud_mirror,aud_task_attempts,attempt_number,BIGINT,3,Y,Y
+warehouse,aud_mirror,aud_task_attempts,status,VARCHAR,4,Y,Y
+warehouse,aud_mirror,aud_task_attempts,owner_id,VARCHAR,5,Y,Y
+warehouse,aud_mirror,aud_task_attempts,lease_expires_at,TIMESTAMP(6) WITH TIME ZONE,6,Y,Y
+warehouse,aud_mirror,aud_task_attempts,heartbeat_at,TIMESTAMP(6) WITH TIME ZONE,7,Y,Y
+warehouse,aud_mirror,aud_task_attempts,queued_at,TIMESTAMP(6) WITH TIME ZONE,8,Y,Y
+warehouse,aud_mirror,aud_task_attempts,claimed_at,TIMESTAMP(6) WITH TIME ZONE,9,Y,Y
+warehouse,aud_mirror,aud_task_attempts,started_at,TIMESTAMP(6) WITH TIME ZONE,10,Y,Y
+warehouse,aud_mirror,aud_task_attempts,ended_at,TIMESTAMP(6) WITH TIME ZONE,11,Y,Y
+warehouse,aud_mirror,aud_task_attempts,host,VARCHAR,12,Y,Y
+warehouse,aud_mirror,aud_task_attempts,pid,BIGINT,13,Y,Y
+warehouse,aud_mirror,aud_task_attempts,process_start,VARCHAR,14,Y,Y
+warehouse,aud_mirror,aud_task_attempts,exit_code,BIGINT,15,Y,Y
+warehouse,aud_mirror,aud_task_attempts,source_count,BIGINT,16,Y,Y
+warehouse,aud_mirror,aud_task_attempts,target_count,BIGINT,17,Y,Y
+warehouse,aud_mirror,aud_task_attempts,insert_count,BIGINT,18,Y,Y
+warehouse,aud_mirror,aud_task_attempts,update_count,BIGINT,19,Y,Y
+warehouse,aud_mirror,aud_task_attempts,delete_count,BIGINT,20,Y,Y
+warehouse,aud_mirror,aud_task_attempts,rows_written,BIGINT,21,Y,Y
+warehouse,aud_mirror,aud_task_attempts,error_message,VARCHAR,22,Y,Y
+warehouse,aud_mirror,aud_task_attempts,task_log,VARCHAR,23,Y,Y
+warehouse,aud_mirror,aud_task_attempts,log_path,VARCHAR,24,Y,Y
+warehouse,aud_mirror,aud_task_attempts,requested_by,VARCHAR,25,Y,Y
+warehouse,aud_mirror,aud_task_attempts,requested_by_kind,VARCHAR,26,Y,Y
+warehouse,aud_mirror,aud_task_attempts,not_before,TIMESTAMP(6) WITH TIME ZONE,27,Y,Y
+warehouse,aud_mirror,aud_task_attempts,retryable,BOOLEAN,28,Y,Y
+warehouse,aud_mirror,aud_task_attempts,reject_count,BIGINT,29,Y,Y
+warehouse,aud_mirror,aud_task_attempts,watermark_from,VARCHAR,30,Y,Y
+warehouse,aud_mirror,aud_task_attempts,watermark_to,VARCHAR,31,Y,Y
+warehouse,aud_mirror,aud_task_attempts,failure_class,VARCHAR,32,Y,Y
+warehouse,aud_mirror,aud_task_attempts,failure_source,VARCHAR,33,Y,Y
+warehouse,aud_mirror,aud_task_attempts,failure_code,VARCHAR,34,Y,Y
+warehouse,aud_mirror,aud_task_attempts,retry_on,VARCHAR,35,Y,Y
+warehouse,aud_mirror,aud_task_attempts,pool,VARCHAR,36,Y,Y
+warehouse,aud_mirror,aud_task_attempts,slot_kind,VARCHAR,37,Y,Y
+warehouse,aud_mirror,aud_task_attempts,priority,BIGINT,38,Y,Y
+warehouse,aud_mirror,aud_task_attempts,cancel_requested_at,TIMESTAMP(6) WITH TIME ZONE,39,Y,Y
+warehouse,aud_mirror,aud_task_attempts,cancel_acknowledged_at,TIMESTAMP(6) WITH TIME ZONE,40,Y,Y
+warehouse,aud_mirror,aud_task_attempts,force_flag,VARCHAR,41,Y,Y
+warehouse,aud_mirror,aud_task_attempts,rerun_flag,VARCHAR,42,Y,Y
+warehouse,aud_mirror,aud_task_attempts,reserved_cpu,"DECIMAL(38,10)",43,Y,Y
+warehouse,aud_mirror,aud_task_attempts,reserved_memory_mb,BIGINT,44,Y,Y
+warehouse,aud_mirror,aud_task_attempts,log_removed_at,TIMESTAMP(6) WITH TIME ZONE,45,Y,Y
+warehouse,aud_mirror,aud_task_attempts,updated_at,TIMESTAMP(6) WITH TIME ZONE,46,Y,Y
+warehouse,aud_mirror,aud_task_attempts,duplicate_count,BIGINT,47,Y,Y
+warehouse,aud_mirror,aud_task_attempts,agent_instance_id,VARCHAR,48,Y,Y
 warehouse,aud_mirror,aud_task_run_log,task_run_id,BIGINT,1,Y,Y
 warehouse,aud_mirror,aud_task_run_log,task_id,BIGINT,2,Y,Y
 warehouse,aud_mirror,aud_task_run_log,pipeline_run_id,BIGINT,3,Y,Y

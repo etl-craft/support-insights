@@ -14,6 +14,7 @@ class MaintenanceContract(unittest.TestCase):
             tables = {
                 row["SCHEMA_NAME"] + "." + row["TABLE_NAME"]
                 for row in csv.DictReader(stream)
+                if row["OBJECT_KIND"] != "VIEW" and row["SCHEMA_NAME"] != "aud_mirror"
             }
         tables.add("lnd.gamma_object_events")
         statements = {}

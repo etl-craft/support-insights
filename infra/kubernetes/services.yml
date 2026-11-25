@@ -632,7 +632,7 @@ spec:
     spec:
       containers:
       - name: generator
-        image: support-insights-generator:a77c77d3134e69c56e04497c3ade279ae08c7f0f
+        image: support-insights-generator:468cd01904f8278c56a39982c9be2b3ca8a19b7f
         resources:
           requests:
             cpu: 20m

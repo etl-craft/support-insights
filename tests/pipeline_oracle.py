@@ -2,6 +2,7 @@
 
 import csv
 import math
+import os
 from datetime import datetime
 from pathlib import Path
 
@@ -132,3 +133,66 @@ def eligible(row):
         )
         and (row["customer_rating"] is None or 1 <= row["customer_rating"] <= 5)
     )
+
+
+def trino_connection():
+    """Connect to the existing demo warehouse through the local port-forward."""
+    from trino.dbapi import connect
+
+    return connect(
+        host=os.environ.get("SI_TRINO_HOST", "localhost"),
+        port=int(os.environ.get("SI_TRINO_PORT", "8080")),
+        user="etl_craft",
+        catalog="warehouse",
+        schema="ods",
+    )
+
+
+def query_rows(connection, sql, parameters=None):
+    cursor = connection.cursor()
+    cursor.execute(sql, parameters)
+    columns = [column[0] for column in cursor.description]
+    return [dict(zip(columns, row, strict=True)) for row in cursor]
+
+
+def stage_validity(connection, run_id):
+    """Capture staged business keys and their rule outcomes before the next replacement."""
+    stage = query_rows(
+        connection,
+        """
+        SELECT source_id, source_system_identifier, CAST(row_id AS VARCHAR) AS row_key
+        FROM pre_ods.customer_support_stage WHERE pipeline_run_id = ?
+    """,
+        [run_id],
+    )
+    keys = {(row["source_id"], row["source_system_identifier"]) for row in stage}
+    if len(keys) != len(stage):
+        raise AssertionError(f"PRE_ODS run {run_id} duplicates business keys")
+    flags = query_rows(
+        connection,
+        """
+        SELECT r.business_rule_key, r.status
+        FROM aud_mirror.aud_business_rules_results r
+        WHERE r.target_catalog_name = 'warehouse' AND r.target_schema_name = 'pre_ods'
+          AND r.target_table_name = 'customer_support_stage'
+          AND EXISTS (
+            SELECT 1 FROM aud_mirror.aud_business_rules_run_log b
+            JOIN aud_mirror.aud_task_run_log t ON t.task_run_id = b.task_run_id
+            WHERE b.business_rule_run_id = r.business_rule_run_id AND t.pipeline_run_id = ?
+          )
+    """,
+        [run_id],
+    )
+    staged = {row["row_key"] for row in stage}
+    rejected = {
+        row["business_rule_key"] for row in flags if row["status"] == "REJECT"
+    } & staged
+    incomplete = {
+        row["business_rule_key"] for row in flags if row["status"] == "INCOMPLETE"
+    } & staged
+    return {
+        "run_id": run_id,
+        "staged": len(stage),
+        "rejected": len(rejected),
+        "incomplete_only": len(incomplete - rejected),
+    }
