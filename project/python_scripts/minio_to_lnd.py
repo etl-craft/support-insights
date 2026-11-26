@@ -21,6 +21,10 @@ def run(task):
         aws_secret_access_key=task.secret("MINIO_PASSWORD"),
     )
 
+    task.logger.info(
+        "reading %d recorded Gamma object(s) from minio-gamma", len(task.event_keys)
+    )
+
     def rows():
         for event_key, event in zip(task.event_keys, task.event_rows, strict=True):
             key, etag = json.loads(event_key)
@@ -29,6 +33,9 @@ def run(task):
                     f"Gamma event {event_key!r}: payload identity mismatch; repair the notification"
                 )
             response = client.get_object(Bucket="gamma", Key=key, IfMatch=etag)
+            task.logger.info(
+                "gamma/%s (ETag %s): %d byte(s)", key, etag, response["ContentLength"]
+            )
             if response["ContentLength"] != event["size"]:
                 response["Body"].close()
                 raise PermanentError(
@@ -52,4 +59,6 @@ def run(task):
                         "source_row": number,
                     }
 
-    return ScriptResult(task.replace_landing(rows()))
+    count = task.replace_landing(rows())
+    task.logger.info("landed %d row(s) from %d object(s)", count, len(task.event_keys))
+    return ScriptResult(count)

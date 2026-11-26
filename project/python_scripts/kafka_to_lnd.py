@@ -44,6 +44,13 @@ def run(task):
             f"{TOPIC}: {len(partitions)} partitions exceeds max_items=4; deliberately revise the metadata and memory budget"
         )
     committed = dict(task.offset.value) if task.offset else {}
+    task.logger.info(
+        "%s: %d partition(s) %s; committed positions %s",
+        TOPIC,
+        len(partitions),
+        partitions,
+        committed or "none (first run)",
+    )
 
     def load(key):
         source = consumer(task)
@@ -62,6 +69,14 @@ def run(task):
                     f"{TOPIC} partition {key}: committed position {start} exceeds end {high}; check for topic recreation and deliberately reset the offset"
                 )
             position = start
+            task.logger.info(
+                "%s partition %s: reading positions %d to %d (retained from %d)",
+                TOPIC,
+                key,
+                start,
+                high,
+                low,
+            )
             source.assign([TopicPartition(TOPIC, partition, start)])
 
             def rows():
@@ -101,6 +116,13 @@ def run(task):
                     }
 
             count = task.replace_landing(rows(), item_key=key)
+            task.logger.info(
+                "%s partition %s: landed %d record(s); next position %d",
+                TOPIC,
+                key,
+                count,
+                position,
+            )
             return ScriptResult(count, Offset.partitions({key: position}))
         finally:
             source.close()

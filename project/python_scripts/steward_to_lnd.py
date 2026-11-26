@@ -4,8 +4,11 @@ from etl_craft.scripting import ScriptResult, UploadReader
 
 
 def run(task):
+    task.logger.info("reading %d accepted steward upload(s)", len(task.uploads))
+
     def rows():
         for upload in task.uploads:
+            task.logger.info("upload %s", upload.upload_id)
             stream = UploadReader(upload, "CSV").rows(
                 schema={
                     "LOCKED": bool,
@@ -22,4 +25,6 @@ def run(task):
                 row.setdefault("locked", None)
                 yield row | {"upload_id": upload.upload_id}
 
-    return ScriptResult(task.replace_landing(rows()))
+    count = task.replace_landing(rows())
+    task.logger.info("landed %d row(s)", count)
+    return ScriptResult(count)
