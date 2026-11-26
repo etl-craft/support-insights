@@ -8,6 +8,9 @@ from source_rows import raw
 def run(task):
     start = int(task.offset.value) if task.offset else 0
     last = start
+    task.logger.info(
+        "reading support documents after serial number %d from mongodb:27017", start
+    )
     with MongoClient(
         host="mongodb",
         port=27017,
@@ -37,4 +40,8 @@ def run(task):
                 }
 
         count = task.replace_landing(rows())
+    if count:
+        task.logger.info("landed %d document(s); last serial number %d", count, last)
+    else:
+        task.logger.info("no new documents after serial number %d", start)
     return ScriptResult(count, Offset.number(last))

@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Every Python script logs through `task.logger`: where it reads from, its starting position,
+  each object or partition it reads, and how many rows it landed. The lines appear in the task log.
 - Preserve reporting validity by successful client run using mirrored audit counts.
   Data metrics now show `load_reject_count` and return NULL validity when no rows were checked.
   The fact view preserves the committed SI_DM watermark to the microsecond.
