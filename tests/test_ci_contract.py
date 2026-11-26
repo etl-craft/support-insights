@@ -90,9 +90,10 @@ class ConfigurationCi(unittest.TestCase):
 
     def test_the_cluster_images_use_the_same_package_pin(self):
         pin = (ROOT / "ci" / "PACKAGE_COMMIT").read_text().strip()
-        build = (ROOT / "infra" / "bootstrap" / "build.sh").read_text()
-        self.assertIn("commit=$(cat ci/PACKAGE_COMMIT)", build)
-        self.assertNotRegex(build, r"[0-9a-f]{40}")
+        for script in ("build.sh", "update.sh"):
+            text = (ROOT / "infra" / "bootstrap" / script).read_text()
+            self.assertIn("commit=$(cat ci/PACKAGE_COMMIT)", text, script)
+            self.assertNotRegex(text, r"\b[0-9a-f]{40}\b", script)
         tagged = [ROOT / "infra" / "bootstrap" / "admin.yml", *(ROOT / "infra" / "kubernetes").glob("*.y*ml")]
         tags = {
             (path.name, tag)

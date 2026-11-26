@@ -10,8 +10,8 @@
 set -eu
 src=${1:-${ETL_CRAFT_SRC:-../etl-craft}}
 [ -f "$src/pyproject.toml" ] || { echo "$src: no pyproject.toml; pass the etl-craft checkout" >&2; exit 1; }
-commit=$(sed -n 's/^commit=//p' infra/bootstrap/build.sh)
-[ -n "$commit" ] || { echo 'infra/bootstrap/build.sh: no commit= line; expected the pinned package commit' >&2; exit 1; }
+commit=$(cat ci/PACKAGE_COMMIT)
+[ -n "$commit" ] || { echo 'ci/PACKAGE_COMMIT: empty; expected the pinned package commit' >&2; exit 1; }
 docker image inspect "support-insights-project:$commit" > /dev/null 2>&1 ||
   { echo "support-insights-project:$commit: not built; run infra/bootstrap/build.sh once first" >&2; exit 1; }
 mkdir -p .state
