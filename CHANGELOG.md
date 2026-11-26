@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- Pin etl-craft at `2cd3ac6`: idle agents stop loading the Engine DB, the first bundle load takes
+  about a second, every UI page has a Back button, and task logs open with the task's context and
+  close with its outcome.
+
 - Every Python script logs through `task.logger`: where it reads from, its starting position,
   each object or partition it reads, and how many rows it landed. The lines appear in the task log.
 - Preserve reporting validity by successful client run using mirrored audit counts.
