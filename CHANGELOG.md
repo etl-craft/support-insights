@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- The twelve SQL scripts that read one run's rows filter with `$$pipeline_run_id_filter`, which
+  is `1=1` on a full refresh, instead of `pipeline_run_id = $$pipeline_run_id`. A full refresh now
+  rebuilds CDC from PRS history and reads every landed row. Their tasks set
+  `PIPELINE_RUN_ID_FILTER=true` and `PIPELINE_RUN_ID_SUBSTITUTION=false`.
+
 - Pin etl-craft at `2cd3ac6`: idle agents stop loading the Engine DB, the first bundle load takes
   about a second, every UI page has a Back button, and task logs open with the task's context and
   close with its outcome.

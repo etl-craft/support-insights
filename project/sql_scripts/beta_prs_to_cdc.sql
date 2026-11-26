@@ -19,4 +19,4 @@ SELECT
     p.source_offset
 FROM prs.client_beta_cs_data AS p
 WHERE
-    p.ACTIVE_FLAG = 'Y' AND p.pipeline_run_id = $$pipeline_run_id
+    p.ACTIVE_FLAG = 'Y' AND $$pipeline_run_id_filter

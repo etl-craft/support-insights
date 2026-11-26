@@ -22,7 +22,7 @@ JOIN (
         ROW_NUMBER() OVER (PARTITION BY source_id, source_system_identifier ORDER BY upload_id DESC) AS receipt_order
     FROM lnd.steward_cs_data AS r
     WHERE
-        pipeline_run_id = $$pipeline_run_id
+        $$pipeline_run_id_filter
 ) AS l
     ON l.source_id = p.source_id
     AND l.source_system_identifier = p.source_system_identifier

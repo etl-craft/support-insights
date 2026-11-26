@@ -17,4 +17,4 @@ SELECT
     CAST(locked AS BOOLEAN) AS locked
 FROM lnd.steward_cs_data
 WHERE
-    pipeline_run_id = $$pipeline_run_id
+    $$pipeline_run_id_filter

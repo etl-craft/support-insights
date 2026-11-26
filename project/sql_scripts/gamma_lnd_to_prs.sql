@@ -19,4 +19,4 @@ SELECT
     source_row
 FROM lnd.client_gamma_cs_data
 WHERE
-    pipeline_run_id = $$pipeline_run_id
+    $$pipeline_run_id_filter

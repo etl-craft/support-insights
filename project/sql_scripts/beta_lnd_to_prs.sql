@@ -19,4 +19,4 @@ SELECT
     source_offset
 FROM lnd.client_beta_cs_data
 WHERE
-    pipeline_run_id = $$pipeline_run_id
+    $$pipeline_run_id_filter
