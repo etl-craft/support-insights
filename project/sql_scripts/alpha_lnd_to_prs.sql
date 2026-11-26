@@ -17,4 +17,4 @@ SELECT
     serial_number
 FROM lnd.client_alpha_cs_data
 WHERE
-    pipeline_run_id = $$pipeline_run_id
+    $$pipeline_run_id_filter
